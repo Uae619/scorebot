@@ -1,0 +1,11 @@
+.gocache/
+.gomodcache
+.gomodcache/
+.claude/
+main
+main.zip
+*.exe
+qitian-fenxi/
+qitian-web-fenxi/
+qitian-teacherapp-fenxi/
+data.json
