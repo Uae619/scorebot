@@ -73,12 +73,6 @@ func (h *CommandHandler) bindHFSAccount(ctx *MessageContext, args bindArgs) stri
 	if school := asString(response2["school"]); school == "wxyunxiaozb" || school == "" {
 		return "* 错误: 账号尚未绑定学生，请在网页端/APP绑定学生后使用"
 	}
-	if ok, _ := opViewTeacher(asString(response2["school"]))["Return"].(bool); !ok {
-		return fmt.Sprintf("* 错误: 本Bot暂不支持学校[%s]使用", asString(response2["school"]))
-	}
-	if strings.Contains(asString(response2["grade"]), "初") {
-		return fmt.Sprintf("* 错误: 本Bot暂不支持年级[%s]使用", asString(response2["grade"]))
-	}
 
 	h.replaceExistingBinding(ctx)
 	mode := "parent"
@@ -248,9 +242,6 @@ func (h *CommandHandler) getSnapshot(ctx *MessageContext) string {
 	}
 	if school := asString(response2["school"]); school == "" || school == "wxyunxiaozb" {
 		return "* 错误: 账号尚未绑定学生，请在网页端/APP绑定学生后使用"
-	}
-	if ok, _ := opViewTeacher(asString(response2["school"]))["Return"].(bool); !ok {
-		return fmt.Sprintf("* 错误: 本Bot尚不支持学校[%s]使用", asString(response2["school"]))
 	}
 
 	opWrite(ctx.UserID, map[string]any{

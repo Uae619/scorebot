@@ -33,11 +33,6 @@ func TestQTNormalizeGrade(t *testing.T) {
 	}
 }
 
-func TestQTAllowUnsupportedGradeForUser(t *testing.T) {
-	if qtAllowUnsupportedGradeForUser("123") {
-		t.Fatalf("unexpected unsupported grade bypass")
-	}
-}
 
 func TestQTShouldRelogin(t *testing.T) {
 	if !qtShouldRelogin(map[string]any{"code": 401, "msg": "您的账号在另一个地点登录，已被迫下线。"}) {

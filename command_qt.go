@@ -1217,10 +1217,6 @@ func (h *CommandHandler) qtGetAnswerSheet(ctx *MessageContext, command string, i
 	return h.sendAnswerSheetImages(ctx, fetch)
 }
 
-func qtAllowUnsupportedGradeForUser(userID string) bool {
-	return false
-}
-
 func qtStudentLoginWithContext(ctx *MessageContext, username, password string) map[string]any {
-	return qtLoginAndSnapshotWithContext(ctx, username, password, ctx != nil && qtAllowUnsupportedGradeForUser(ctx.UserID))
+	return qtLoginAndSnapshotWithContext(ctx, username, password)
 }

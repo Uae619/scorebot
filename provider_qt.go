@@ -400,7 +400,7 @@ func (c *SevenNetClient) questionAnswerCardURLWithContext(ctx *MessageContext, f
 	return c.requestWithContext(ctx, http.MethodPost, c.scoreBaseURL+"/Question/AnswerCardUrl", form)
 }
 
-func qtLoginAndSnapshotWithContext(ctx *MessageContext, username, password string, allowUnsupportedGrade bool) map[string]any {
+func qtLoginAndSnapshotWithContext(ctx *MessageContext, username, password string) map[string]any {
 	client := newSevenNetClient("")
 	loginRes := client.loginWithContext(ctx, username, password)
 	if loginRes["getSuccess"] != true {
@@ -413,17 +413,11 @@ func qtLoginAndSnapshotWithContext(ctx *MessageContext, username, password strin
 
 	userData := asMap(infoRes["data"])
 	grade, ok := qtNormalizeGrade(asString(userData["currentGrade"]))
-	if !ok && !allowUnsupportedGrade {
-		return map[string]any{"isSuccess": false, "msg": fmt.Sprintf("登录成功，但年级不被允许绑定: %s", asString(userData["currentGrade"]))}
-	}
 	if !ok {
 		grade = asString(userData["currentGrade"])
 	}
 
-	school, ok := normalizeQTBindableSchool(asString(userData["schoolName"]))
-	if !ok {
-		return map[string]any{"isSuccess": false, "msg": fmt.Sprintf("登录成功，但暂不支持学校【%s】进行绑定。若您确认学校应当支持，请联系管理员。", school)}
-	}
+	school := qtMapSchoolName(asString(userData["schoolName"]))
 
 	return map[string]any{
 		"isSuccess": true,
