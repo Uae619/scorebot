@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: scorebot
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/query?qqid=health
+    envVars:
+      - key: CHAT_ADAPTER
+        value: http
+      - key: DATA_STORE
+        value: sqlite
+      - key: SQLITE_STORE_PATH
+        value: /data/data.sqlite
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1

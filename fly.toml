@@ -1,0 +1,25 @@
+app = "scorebot"
+primary_region = "hkg"
+
+[build]
+  image = "golang:1-alpine"
+
+[env]
+  CHAT_ADAPTER = "http"
+  DATA_STORE = "sqlite"
+  SQLITE_STORE_PATH = "/data/data.sqlite"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+[[mounts]]
+  source = "scorebot_data"
+  destination = "/data"

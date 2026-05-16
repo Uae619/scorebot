@@ -11,13 +11,28 @@ import (
 
 func main() {
 	configureRuntimeFromEnv()
-	if selectedChatAdapter() != "fc" {
-		if err := runCLIChat(context.Background()); err != nil {
+	switch selectedChatAdapter() {
+	case "http":
+		addr := strings.TrimSpace(os.Getenv("API_LISTEN"))
+		if addr == "" {
+			port := strings.TrimSpace(os.Getenv("PORT"))
+			if port == "" {
+				port = "8080"
+			}
+			addr = "0.0.0.0:" + port
+		}
+		if err := StartAPIServer(addr); err != nil {
 			log.Fatal(err)
 		}
 		return
+	case "fc":
+		fc.Start(HandleRequest)
+		return
+	default:
+		if err := runCLIChat(context.Background()); err != nil {
+			log.Fatal(err)
+		}
 	}
-	fc.Start(HandleRequest)
 }
 
 func selectedChatAdapter() string {

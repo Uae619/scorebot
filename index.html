@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#3b82f6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="查分">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="/manifest.json">
+<title>查分</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+  }
+  .container {
+    width: 100%;
+    max-width: 720px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  h1 { text-align: center; color: #1f2937; font-size: 24px; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #9ca3af; font-size: 13px; margin-bottom: 24px; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: #f3f4f6; border-radius: 10px; padding: 4px; }
+  .tab {
+    flex: 1; padding: 10px; text-align: center; color: #6b7280; font-size: 14px; font-weight: 600;
+    border-radius: 8px; cursor: pointer; transition: all 0.2s; border: none; background: transparent;
+  }
+  .tab.active { background: #3b82f6; color: #fff; }
+  .tab:hover:not(.active) { color: #374151; background: #e5e7eb; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; color: #4b5563; font-size: 13px; margin-bottom: 6px; }
+  .form-group input, .form-group select {
+    width: 100%; padding: 12px 14px;
+    border: 2px solid #d1d5db; border-radius: 8px;
+    background: #f9fafb; color: #1f2937; font-size: 15px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: #3b82f6; background: #fff; }
+  .form-group input::placeholder { color: #9ca3af; }
+  .form-group select { appearance: none; cursor: pointer; }
+
+  .btn {
+    width: 100%; padding: 12px; border: none; border-radius: 10px;
+    font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary { background: #3b82f6; color: white; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+
+  .search-row { display: flex; gap: 10px; }
+  .search-row input { flex: 1; }
+  .search-row button { width: auto; padding: 12px 28px; }
+
+  .status {
+    text-align: center; padding: 12px; border-radius: 8px; margin: 16px 0;
+    font-size: 14px; display: none;
+  }
+  .status.loading { display: block; background: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; }
+  .status.error   { display: block; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  .status.ok      { display: block; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+
+  .info-card { background: #f3f4f6; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .info-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .info-item { background: #ffffff; border-radius: 8px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .info-item .label { font-size: 11px; color: #9ca3af; text-transform: uppercase; margin-bottom: 4px; }
+  .info-item .value { font-size: 15px; color: #1f2937; font-weight: 600; }
+
+  .exam-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .exam-table thead th { text-align: left; padding: 10px 14px; color: #6b7280; font-size: 12px; text-transform: uppercase; border-bottom: 2px solid #e5e7eb; background: #f9fafb; }
+  .exam-table tbody td { padding: 12px 14px; color: #374151; font-size: 14px; border-bottom: 1px solid #f3f4f6; }
+  .exam-table tbody tr { transition: background 0.15s; }
+  .exam-table tbody tr:hover { background: #f0f4ff; }
+  .exam-id { font-family: "SF Mono", "Fira Code", monospace; color: #3b82f6; font-weight: 600; }
+
+  .exam-row { cursor: pointer; }
+  .detail-card { background: #f3f4f6; border-radius: 10px; padding: 20px; margin-top: 16px; }
+  .detail-card h3 { color: #1f2937; font-size: 18px; margin-bottom: 12px; }
+  .detail-card .meta { color: #6b7280; font-size: 13px; margin-bottom: 16px; }
+  .detail-card .score { font-size: 28px; color: #3b82f6; font-weight: 700; margin-bottom: 16px; }
+
+  .empty-state { text-align: center; padding: 32px 20px; color: #9ca3af; }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+  .hint { color: #9ca3af; font-size: 12px; margin-top: 4px; }
+  .divider { height: 1px; background: #e5e7eb; margin: 20px 0; }
+
+  .disclaimer {
+    text-align: center; padding: 20px 0 0; margin-top: 24px;
+    color: #9ca3af; font-size: 11px; border-top: 1px solid #e5e7eb;
+  }
+
+  @media (max-width: 500px) {
+    .search-row { flex-direction: column; }
+    .search-row button { width: 100%; }
+    .container { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>成绩查询系统</h1>
+  <p class="subtitle">ScoreBot-Go · 好分数 / 七天网络</p>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('bind')">绑定账号</button>
+    <button class="tab" onclick="switchTab('query')">查询成绩</button>
+  </div>
+
+  <!-- ========== 绑定面板 ========== -->
+  <div id="panel-bind" class="panel active">
+
+    <div class="form-group">
+      <label>QQ 号</label>
+      <input id="bind-qqid" type="text" placeholder="用作身份标识，不一定需要真实 QQ 号">
+    </div>
+    <div class="form-group">
+      <label>平台</label>
+      <select id="bind-platform">
+        <option value="hfs-student">好分数 (学生版)</option>
+        <option value="hfs-parent">好分数 (家长版)</option>
+        <option value="qt">七天网络</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>账号</label>
+      <input id="bind-username" type="text" placeholder="手机号或邮箱">
+    </div>
+    <div class="form-group">
+      <label>密码</label>
+      <input id="bind-password" type="password" placeholder="平台登录密码">
+      <p class="hint">密码会保存在本地数据库，仅用于查询成绩</p>
+    </div>
+
+    <div id="bind-status" class="status"></div>
+    <button class="btn btn-primary" id="bindBtn" onclick="doBind()">绑定</button>
+
+    <div class="divider"></div>
+    <p style="color:#9ca3af;font-size:13px;">
+      已有绑定？切换到 <b style="color:#3b82f6;cursor:pointer;" onclick="switchTab('query')">查询成绩</b> 标签页
+    </p>
+  </div>
+
+  <!-- ========== 查询面板 ========== -->
+  <div id="panel-query" class="panel">
+
+    <div class="search-row">
+      <input id="query-qqid" type="text" placeholder="输入你的 QQ 号" autofocus>
+      <button class="btn btn-primary" id="searchBtn" onclick="doQuery()">查询</button>
+    </div>
+
+    <div id="query-status" class="status"></div>
+    <div id="result"></div>
+  </div>
+
+  <!-- 免责声明 -->
+  <div class="disclaimer">
+    免责声明：本工具仅用于个人学习成绩查询，数据来源于好分数/七天网络官方接口。<br>
+    使用者应自行确保拥有查询对应账号成绩的合法权限。本工具不存储成绩数据，仅供学习交流使用。
+  </div>
+</div>
+
+<script>
+  // --- tab switching ---
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', (i === 0 && name === 'bind') || (i === 1 && name === 'query'));
+    });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    if (name === 'query') document.getElementById('query-qqid').focus();
+  }
+
+  // --- bind ---
+  async function doBind() {
+    const qqid = document.getElementById('bind-qqid').value.trim();
+    const platform = document.getElementById('bind-platform').value;
+    const username = document.getElementById('bind-username').value.trim();
+    const password = document.getElementById('bind-password').value;
+
+    if (!qqid) { showBindStatus('error', '请输入 QQ 号'); return; }
+    if (!username) { showBindStatus('error', '请输入账号'); return; }
+    if (!password) { showBindStatus('error', '请输入密码'); return; }
+
+    const btn = document.getElementById('bindBtn');
+    btn.disabled = true;
+    showBindStatus('loading', '正在绑定...');
+
+    try {
+      const resp = await fetch('/api/bind', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qqid, platform, username, password })
+      });
+      const data = await resp.json();
+
+      if (!data.success) {
+        showBindStatus('error', data.error || '绑定失败');
+        return;
+      }
+
+      showBindStatus('ok', data.data.message + ' — 现在可以去「查询成绩」了！');
+      document.getElementById('query-qqid').value = qqid;
+    } catch (err) {
+      showBindStatus('error', '网络请求失败: ' + err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function showBindStatus(type, msg) {
+    const el = document.getElementById('bind-status');
+    el.className = 'status ' + type;
+    el.textContent = msg;
+  }
+
+  // --- query ---
+  const queryInput = document.getElementById('query-qqid');
+  const searchBtn = document.getElementById('searchBtn');
+  const queryStatus = document.getElementById('query-status');
+  const resultEl = document.getElementById('result');
+
+  queryInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') doQuery();
+  });
+
+  async function doQuery() {
+    const qqid = queryInput.value.trim();
+    if (!qqid) return;
+
+    searchBtn.disabled = true;
+    showQueryStatus('loading', '正在查询...');
+    resultEl.innerHTML = '';
+
+    try {
+      const resp = await fetch('/api/query?qqid=' + encodeURIComponent(qqid));
+      const data = await resp.json();
+
+      if (!data.success) {
+        showQueryStatus('error', data.error || '查询失败');
+        return;
+      }
+
+      hideQueryStatus();
+      renderResult(data.data, qqid);
+    } catch (err) {
+      showQueryStatus('error', '网络请求失败: ' + err.message);
+    } finally {
+      searchBtn.disabled = false;
+    }
+  }
+
+  function showQueryStatus(type, msg) {
+    queryStatus.className = 'status ' + type;
+    queryStatus.textContent = msg;
+  }
+  function hideQueryStatus() {
+    queryStatus.className = 'status';
+    queryStatus.textContent = '';
+  }
+
+  function renderResult(data, qqid) {
+    let html = '<div class="info-card"><div class="info-row">';
+    const fields = [
+      ['QQ 号', data.qqid], ['绑定类型', data.mode], ['姓名', data.name || '—'],
+      ['学校', data.school || '—'], ['年级', data.grade || '—'], ['班级', data.class || '—']
+    ];
+    for (const [label, value] of fields) {
+      html += '<div class="info-item"><div class="label">' + label + '</div><div class="value">' + esc(value) + '</div></div>';
+    }
+    html += '</div></div>';
+
+    if (data.exams && data.exams.length > 0) {
+      html += '<table class="exam-table"><thead><tr><th>考试 ID</th><th>考试名称</th><th>时间</th></tr></thead><tbody>';
+      for (const exam of data.exams) {
+        html += '<tr class="exam-row" onclick="loadExamDetail(\'' + escAttr(qqid) + '\', \'' + escAttr(exam.id) + '\')">';
+        html += '<td><span class="exam-id">' + esc(exam.id) + '</span></td>';
+        html += '<td>' + esc(exam.name) + '</td>';
+        html += '<td>' + esc(exam.time) + '</td>';
+        html += '</tr>';
+      }
+      html += '</tbody></table>';
+      html += '<p class="hint" style="margin-top:8px;">点击某场考试可查看详情</p>';
+      html += '<div id="exam-detail"></div>';
+    } else {
+      html += '<div class="empty-state"><div class="icon">&#128531;</div><p>暂无考试记录</p></div>';
+    }
+
+    resultEl.innerHTML = html;
+  }
+
+  async function loadExamDetail(qqid, examId) {
+    const detailEl = document.getElementById('exam-detail');
+    detailEl.innerHTML = '<div class="status loading">加载中...</div>';
+
+    try {
+      const resp = await fetch('/api/query?qqid=' + encodeURIComponent(qqid) + '&exam_id=' + encodeURIComponent(examId));
+      const data = await resp.json();
+
+      if (!data.success) {
+        detailEl.innerHTML = '<div class="status error">' + esc(data.error || '加载失败') + '</div>';
+        return;
+      }
+
+      const d = data.data;
+      let html = '<div class="detail-card">';
+      html += '<h3>' + esc(d.examName) + '</h3>';
+      html += '<div class="meta">考试 ID: ' + esc(d.examId) + ' | 时间: ' + esc(d.examTime) + '</div>';
+
+      html += '<div class="score" style="margin-bottom:4px;">' + esc(d.score) + ' / ' + esc(d.fullScore) + '</div>';
+      var rankParts = [];
+      if (d.grade) rankParts.push('等第 <b style="color:#f59e0b;">' + esc(d.grade) + '</b>');
+      if (d.rankLow > 0 && d.rankHigh > 0) {
+        rankParts.push('预估年级排名 <b style="color:#f59e0b;">' + (d.rankLow === d.rankHigh ? String(d.rankLow) : (d.rankLow + ' ~ ' + d.rankHigh)) + '</b>');
+      }
+      if (d.totalStudents > 0) rankParts.push('年级人数 ' + d.totalStudents);
+      if (rankParts.length > 0) {
+        html += '<div class="meta" style="margin-bottom:12px;">' + rankParts.join(' &nbsp;|&nbsp; ') + '</div>';
+      }
+
+      if (d.subjects && d.subjects.length > 0) {
+        html += '<table class="exam-table"><thead><tr><th>科目</th><th>分数</th><th>满分</th><th>等第</th><th>预估排名</th></tr></thead><tbody>';
+        for (const sub of d.subjects) {
+          var subRank = '—';
+          if (sub.rankLow > 0 && sub.rankHigh > 0) {
+            subRank = sub.rankLow === sub.rankHigh ? String(sub.rankLow) : (sub.rankLow + '-' + sub.rankHigh);
+          }
+          html += '<tr>';
+          html += '<td>' + esc(sub.name) + '</td>';
+          html += '<td>' + esc(sub.score) + '</td>';
+          html += '<td>' + esc(sub.fullScore) + '</td>';
+          html += '<td style="color:#f59e0b;font-weight:600;">' + esc(sub.grade) + '</td>';
+          html += '<td>' + subRank + '</td>';
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+      }
+      html += '</div>';
+      detailEl.innerHTML = html;
+    } catch (err) {
+      detailEl.innerHTML = '<div class="status error">网络请求失败: ' + esc(err.message) + '</div>';
+    }
+  }
+
+  function esc(s) {
+    if (!s) return '—';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function escAttr(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
+</script>
+</body>
+</html>
