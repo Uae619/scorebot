@@ -14,6 +14,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -730,6 +731,23 @@ func queryQTExamDetail(ctx *MessageContext, handler *CommandHandler, examID stri
 	}
 
 	totalReport := asMap(asMap(gradeRes["data"])["report"])
+	totalSubject := qtTotalSubject(subjectsData)
+
+	// 总分回退链: 独立API > subjects列表里的总分 > exam数据 > 科目加总
+	score := defaultString(asString(totalReport["myScore"]),
+		defaultString(asString(totalSubject["myScore"]), asString(exam["score"])))
+	fullScore := defaultString(asString(totalReport["fullScore"]),
+		defaultString(asString(totalSubject["fullScore"]), "—"))
+
+	// 如果总分 API 返回 0/0 且 subjects 里也没有，尝试从可见科目加总
+	if score == "0" && fullScore == "0" {
+		calcScore, calcFull := qtComputeTotalFromSubjects(subjectsData)
+		if calcFull > 0 {
+			score = strconv.FormatFloat(calcScore, 'f', -1, 64)
+			fullScore = strconv.FormatFloat(calcFull, 'f', -1, 64)
+		}
+	}
+
 	totalGrade := strings.ToUpper(asString(totalReport["grade"]))
 	totalStudents := asInt(totalReport["total"])
 	rankLow, rankHigh, _ := qtEstimateRankRange(totalGrade, totalStudents)
@@ -772,8 +790,8 @@ func queryQTExamDetail(ctx *MessageContext, handler *CommandHandler, examID stri
 		ExamID:        shortIDs[asString(exam["examGuid"])],
 		ExamName:      defaultString(asString(exam["examName"]), "未知"),
 		ExamTime:      stringOrNA(exam["time"]),
-		Score:         defaultString(asString(totalReport["myScore"]), asString(exam["score"])),
-		FullScore:     defaultString(asString(totalReport["fullScore"]), "—"),
+		Score:         score,
+		FullScore:     fullScore,
 		Grade:         totalGrade,
 		RankLow:       rankLow,
 		RankHigh:      rankHigh,

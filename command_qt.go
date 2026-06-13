@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -162,6 +163,17 @@ func qtTotalSubject(subjectsData map[string]any) map[string]any {
 		}
 	}
 	return map[string]any{}
+}
+
+// qtComputeTotalFromSubjects 从所有可见科目加总计算总分，用于 QT API 未提供总分时的回退
+func qtComputeTotalFromSubjects(subjectsData map[string]any) (score, fullScore float64) {
+	for _, subject := range qtVisibleSubjects(subjectsData) {
+		s, _ := strconv.ParseFloat(asString(subject["myScore"]), 64)
+		f, _ := strconv.ParseFloat(asString(subject["fullScore"]), 64)
+		score += s
+		fullScore += f
+	}
+	return
 }
 
 func qtBuildSubjectContext(exam map[string]any, subjectsData map[string]any) map[string]any {
