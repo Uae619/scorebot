@@ -17,7 +17,10 @@ func main() {
 		if addr == "" {
 			port := strings.TrimSpace(os.Getenv("PORT"))
 			if port == "" {
-				port = "8080"
+				port = strings.TrimSpace(os.Getenv("FC_SERVER_PORT"))
+				if port == "" {
+					port = "8080"
+				}
 			}
 			addr = "0.0.0.0:" + port
 		}

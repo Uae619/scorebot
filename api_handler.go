@@ -13,6 +13,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -249,10 +250,40 @@ func bindHFS(ctx *MessageContext, username, password string, accountType int) (s
 }
 
 func bindQT(ctx *MessageContext, username, password string) (string, string) {
-	response := qtStudentLoginWithContext(ctx, username, password)
-	if response["isSuccess"] != true {
-		return "", "七天网络登录失败: " + asString(response["msg"])
+	client := newSevenNetClient("")
+	loginRes := client.loginWithContext(ctx, username, password)
+	if loginRes["getSuccess"] != true {
+		code := asInt(loginRes["code"])
+		msg := asString(loginRes["msg"])
+		data := asMap(loginRes["data"])
+		// Check if captcha is needed — return full data for frontend to handle
+		if data != nil && len(data) > 0 {
+			dataJSON, _ := json.Marshal(data)
+			return "", fmt.Sprintf("CAPTCHA|%d|%s|%s", code, msg, string(dataJSON))
+		}
+		return "", fmt.Sprintf("七天网络登录失败 (HTTP %d): %s", code, msg)
 	}
+	if errMsg := handleQTLoginSuccess(ctx, client, loginRes, username, password); errMsg != "" {
+		return "", errMsg
+	}
+	return fmt.Sprintf("绑定成功！（七天网络）%s / 学校: %s", asString(loginRes["name"]), asString(loginRes["school"])), ""
+}
+
+func handleQTLoginSuccess(ctx *MessageContext, client *SevenNetClient, loginRes map[string]any, username, password string) string {
+	token := asString(asMap(loginRes["data"])["token"])
+	if token != "" {
+		client.token = token
+	}
+	infoRes := client.getUserInfoWithContext(ctx)
+	if infoRes["getSuccess"] != true {
+		return fmt.Sprintf("登录成功，但获取用户信息失败: %s", asString(infoRes["msg"]))
+	}
+	userData := asMap(infoRes["data"])
+	grade, ok := qtNormalizeGrade(asString(userData["currentGrade"]))
+	if !ok {
+		grade = asString(userData["currentGrade"])
+	}
+	school := qtMapSchoolName(asString(userData["schoolName"]))
 
 	replaceExistingBinding(ctx)
 	opNew(ctx.UserID)
@@ -261,15 +292,14 @@ func bindQT(ctx *MessageContext, username, password string) (string, string) {
 		"xuehao": nil,
 		"zh":     username,
 		"pw":     password,
-		"name":   response["name"],
-		"school": response["school"],
-		"grade":  response["grade"],
+		"name":   asString(userData["studentName"]),
+		"school": school,
+		"grade":  grade,
 		"banji":  nil,
-		"token":  response["token"],
+		"token":  token,
 		"id":     nil,
 	})
-
-	return fmt.Sprintf("绑定成功！（七天网络）%s / 学校: %s", asString(response["name"]), asString(response["school"])), ""
+	return ""
 }
 
 func bindBFZ(ctx *MessageContext, username, password string) (string, string) {
@@ -460,6 +490,57 @@ func getQTAnswerSheet(ctx *MessageContext, handler *CommandHandler, subjectID st
 		return asString(urls[0]), ""
 	}
 	return "", "答题卡 URL 为空"
+}
+
+// ---------- GET /api/debug-qt ----------
+
+func handleDebugQT(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	type debugResult struct {
+		Step   string `json:"step"`
+		OK     bool   `json:"ok"`
+		Detail string `json:"detail"`
+	}
+	var results []debugResult
+
+	client := &http.Client{Timeout: 15 * time.Second}
+
+	// Step 1: DNS resolve
+	req, _ := http.NewRequestWithContext(r.Context(), http.MethodGet, "https://szone-score.7net.cc/", nil)
+	req.Header.Set("User-Agent", qtUserAgent())
+	t0 := time.Now()
+	resp, err := client.Do(req)
+	dur := time.Since(t0).Milliseconds()
+	if err != nil {
+		results = append(results, debugResult{"QT base URL", false, fmt.Sprintf("%dms: %v", dur, err)})
+	} else {
+		resp.Body.Close()
+		results = append(results, debugResult{"QT base URL", true, fmt.Sprintf("HTTP %d (%dms)", resp.StatusCode, dur)})
+	}
+
+	// Step 2: Test correct login endpoint and dump full response
+	form := url.Values{}
+	form.Set("userCode", "13800138000")
+	form.Set("password", "test")
+	req2, _ := http.NewRequestWithContext(r.Context(), http.MethodPost, "https://szone-my.7net.cc/login", nil)
+	req2.Header.Set("User-Agent", qtUserAgent())
+	req2.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+	req2.Body = io.NopCloser(strings.NewReader(form.Encode()))
+	t0 = time.Now()
+	resp2, err2 := client.Do(req2)
+	dur2 := time.Since(t0).Milliseconds()
+	if err2 != nil {
+		results = append(results, debugResult{"QT login API", false, fmt.Sprintf("%dms: %v", dur2, err2)})
+	} else {
+		body, _ := io.ReadAll(io.LimitReader(resp2.Body, 8192))
+		resp2.Body.Close()
+		results = append(results, debugResult{"QT login API (raw)", resp2.StatusCode == 200,
+			fmt.Sprintf("HTTP %d (%dms) raw body: %s", resp2.StatusCode, dur2, string(body))})
+	}
+
+	writeJSON(w, http.StatusOK, apiResponse{Success: true, Data: results})
 }
 
 // ---------- GET /api/query ----------
@@ -767,6 +848,22 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 
 func StartAPIServer(addr string) error {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/api/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.Method == http.MethodPost {
+			body, _ := io.ReadAll(io.LimitReader(r.Body, 4096))
+			writeJSON(w, http.StatusOK, apiResponse{Success: true, Data: fmt.Sprintf("post ok, body=%s", string(body))})
+			return
+		}
+		writeJSON(w, http.StatusOK, apiResponse{Success: true, Data: "pong"})
+	})
+	mux.HandleFunc("/api/debug-qt", handleDebugQT)
 	mux.HandleFunc("/api/bind", handleAPIBind)
 	mux.HandleFunc("/api/query", handleAPIQuery)
 	mux.HandleFunc("/api/answersheet", handleAnswerSheet)
