@@ -1,11 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
+	"image/draw"
+	"image/png"
 	"io"
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -19,6 +25,9 @@ var manifestJSON []byte
 
 //go:embed sw.js
 var swJS []byte
+
+//go:embed egg.gif
+var eggGIF []byte
 
 var icon192PNG = generateIconPNG(192)
 var icon512PNG = generateIconPNG(512)
@@ -72,6 +81,10 @@ type apiExamDetail struct {
 	RankLow       int          `json:"rankLow"`
 	RankHigh      int          `json:"rankHigh"`
 	TotalStudents int          `json:"totalStudents"`
+	SchoolRank    string       `json:"schoolRank,omitempty"`
+	ClassRank     string       `json:"classRank,omitempty"`
+	GradeStuNum   string       `json:"gradeStuNum,omitempty"`
+	ClassStuNum   string       `json:"classStuNum,omitempty"`
 	Subjects      []apiSubject `json:"subjects"`
 }
 
@@ -83,6 +96,8 @@ type apiSubject struct {
 	Grade     string `json:"grade,omitempty"`
 	RankLow   int    `json:"rankLow,omitempty"`
 	RankHigh  int    `json:"rankHigh,omitempty"`
+	Rank      string `json:"rank,omitempty"`
+	ClassRank string `json:"classRank,omitempty"`
 }
 
 type apiBindRequest struct {
@@ -289,6 +304,164 @@ func replaceExistingBinding(ctx *MessageContext) {
 	}
 }
 
+// ---------- GET /api/answersheet ----------
+
+func proxyImage(w http.ResponseWriter, imgURL string) {
+	client := httpClient(30 * time.Second)
+	resp, err := client.Get(imgURL)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, apiResponse{Success: false, Error: "下载图片失败: " + err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" || strings.HasPrefix(contentType, "text/html") {
+		contentType = "image/jpeg"
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	w.WriteHeader(http.StatusOK)
+	io.Copy(w, resp.Body)
+}
+
+func handleAnswerSheet(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	qqid := strings.TrimSpace(r.URL.Query().Get("qqid"))
+	subjectID := strings.TrimSpace(r.URL.Query().Get("subject_id"))
+
+	if qqid == "" || subjectID == "" {
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "缺少 qqid 或 subject_id 参数"})
+		return
+	}
+
+	userdata := opView(qqid)
+	if ok, _ := userdata["Return"].(bool); !ok {
+		writeJSON(w, http.StatusNotFound, apiResponse{Success: false, Error: "该 QQ 号未绑定账号"})
+		return
+	}
+
+	ctx := apiMessageContext(r, qqid)
+	handler := newCommandHandler(&noopSender{})
+	handler.userdata = userdata
+	mode := asString(userdata["mode"])
+
+	var imgURL string
+	var errMsg string
+
+	switch mode {
+	case "student", "parent":
+		imgURL, errMsg = getHFSAnswerSheet(ctx, handler, subjectID)
+	case "qt":
+		imgURL, errMsg = getQTAnswerSheet(ctx, handler, subjectID)
+	default:
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "该平台不支持答题卡查询"})
+		return
+	}
+
+	if errMsg != "" {
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: errMsg})
+		return
+	}
+
+	// proxy the image: download from provider, serve to browser
+	proxyImage(w, imgURL)
+}
+
+func getHFSAnswerSheet(ctx *MessageContext, handler *CommandHandler, subjectID string) (string, string) {
+	examContext := opViewExamContext(ctx.UserID)
+	if examContext["Return"] != true {
+		return "", "未找到前置考试信息，请先查询考试详情"
+	}
+	subjectMap := asMap(examContext["subject_map"])
+	paperInfo := asMap(subjectMap[subjectID])
+	if len(paperInfo) == 0 {
+		return "", "未找到对应科目信息"
+	}
+
+	paperID := asString(paperInfo["paperId"])
+	pid := asString(paperInfo["pid"])
+	if paperID == "" || pid == "" {
+		return "", "科目信息不完整"
+	}
+
+	examID := asString(handler.userdata["exam"])
+	token := asString(handler.userdata["token"])
+	if token == "" {
+		return "", "未找到登录凭证"
+	}
+
+	// check if relogin needed
+	resp := studentGetSubjectTinfoAnswerpicWithContext(ctx, token, examID, paperID, pid)
+	if resp["getSuccess"] != true {
+		if asInt(resp["code"]) == 3001 {
+			if _, err := handler.reloginStudentToken(ctx); err != "" {
+				return "", "重新登录失败"
+			}
+			token = asString(handler.userdata["token"])
+			resp = studentGetSubjectTinfoAnswerpicWithContext(ctx, token, examID, paperID, pid)
+			if resp["getSuccess"] != true {
+				return "", "获取答题卡失败: " + asString(resp["msg"])
+			}
+		} else {
+			return "", "获取答题卡失败: " + asString(resp["msg"])
+		}
+	}
+
+	// use the project's own URL extractor
+	urls, _ := extractAnswerSheetURLs(resp)
+	if len(urls) > 0 {
+		return asString(urls[0]), ""
+	}
+	return "", "答题卡 URL 为空"
+}
+
+func getQTAnswerSheet(ctx *MessageContext, handler *CommandHandler, subjectID string) (string, string) {
+	examContext := opViewExamContext(ctx.UserID)
+	if examContext["Return"] != true {
+		return "", "未找到前置考试信息，请先查询考试详情"
+	}
+	subjectMap := asMap(examContext["subject_map"])
+	if asString(subjectMap["__provider"]) != "qt" {
+		return "", "当前不是七天网络考试"
+	}
+
+	items := asMap(subjectMap["__items"])
+	aliases := asMap(subjectMap["__aliases"])
+	if alias := asString(aliases[subjectID]); alias != "" {
+		subjectID = alias
+	}
+	subject := asMap(items[subjectID])
+	if len(subject) == 0 {
+		return "", "未找到对应科目信息"
+	}
+
+	exam := asMap(subjectMap["__exam"])
+	if len(exam) == 0 || asString(exam["examGuid"]) == "" {
+		return "", "考试上下文不完整"
+	}
+
+	token, userInfo, errMsg := handler.qtLoadUserInfoWithRelogin(ctx)
+	if errMsg != "" {
+		return "", errMsg
+	}
+
+	resp := qtGetQuestionAnswerCardURLWithContext(ctx, token, userInfo, exam, subject, true)
+	if resp["getSuccess"] != true {
+		return "", "获取答题卡失败: " + asString(resp["msg"])
+	}
+
+	urls, _ := extractAnswerSheetURLs(resp)
+	if len(urls) > 0 {
+		return asString(urls[0]), ""
+	}
+	return "", "答题卡 URL 为空"
+}
+
 // ---------- GET /api/query ----------
 
 func handleAPIQuery(w http.ResponseWriter, r *http.Request) {
@@ -379,10 +552,15 @@ func queryHFSExamDetail(ctx *MessageContext, handler *CommandHandler, examID str
 		return nil, errMsg
 	}
 
+	// store exam context for answer sheet lookup
+	subjectMap := extractExamPaperContext(examOverview)
+	if len(subjectMap) > 0 {
+		opWriteExamContext(ctx.UserID, examID, subjectMap)
+	}
+
 	data := asMap(examOverview["data"])
 	papers := asSlice(data["papers"])
 	subjects := make([]apiSubject, 0, len(papers))
-	var totalScore, totalFull string
 	for _, item := range papers {
 		sub := asMap(item)
 		subjects = append(subjects, apiSubject{
@@ -390,31 +568,33 @@ func queryHFSExamDetail(ctx *MessageContext, handler *CommandHandler, examID str
 			Name:      asString(sub["subject"]),
 			Score:     asString(sub["score"]),
 			FullScore: asString(sub["manfen"]),
-			Grade:     asString(sub["gradeRank"]),
+			Rank:      asString(sub["gradeRank"]),
+			ClassRank: asString(sub["classRank"]),
 		})
-		// 累加科目分得到总分（HFS v3 接口的总分字段可能不准确）
 	}
 
-	totalScore = asString(data["score"])
-	totalFull = asString(data["manfen"])
 	schoolRank := asString(asMap(data["compare"])["curGradeRank"])
-	gradeStuNum := asString(data["gradeStuNum"])
-
 	detail := &apiExamDetail{
-		QQID:      ctx.UserID,
-		ExamID:    examID,
-		ExamName:  asString(data["name"]),
-		ExamTime:  formatExamDate(data["time"]),
-		Score:     totalScore,
-		FullScore: totalFull,
-		Subjects:  subjects,
+		QQID:        ctx.UserID,
+		ExamID:      examID,
+		ExamName:    asString(data["name"]),
+		ExamTime:    formatExamDate(data["time"]),
+		Score:       asString(data["score"]),
+		FullScore:   asString(data["manfen"]),
+		SchoolRank:  schoolRank,
+		GradeStuNum: asString(data["gradeStuNum"]),
+		ClassStuNum: asString(data["classStuNum"]),
+		Subjects:    subjects,
 	}
 
+	// HFS returns exact rank
 	if schoolRank != "" {
-		detail.Grade = "校排名 " + schoolRank
+		detail.Grade = "校排名"
+		detail.RankLow = asInt(schoolRank)
+		detail.RankHigh = asInt(schoolRank)
 	}
-	if gradeStuNum != "" {
-		detail.TotalStudents = asInt(gradeStuNum)
+	if detail.GradeStuNum != "" {
+		detail.TotalStudents = asInt(detail.GradeStuNum)
 	}
 
 	return detail, ""
@@ -451,6 +631,12 @@ func queryQTExamDetail(ctx *MessageContext, handler *CommandHandler, examID stri
 		return nil, errMsg
 	}
 	subjectsData := asMap(subjectsRes["data"])
+
+	// store exam context for answer sheet lookup
+	qtContext := qtBuildSubjectContext(exam, subjectsData)
+	opWrite(ctx.UserID, map[string]any{"exam": asString(exam["examGuid"])})
+	opWriteExamContext(ctx.UserID, asString(exam["examGuid"]), qtContext)
+	handler.userdata["exam"] = asString(exam["examGuid"])
 
 	// 总分排名
 	gradeRes, _, errMsg := handler.qtExecuteWithProfile(ctx, "question_subject_grade:总分",
@@ -573,6 +759,9 @@ func formatQTExamItems(exams []map[string]any) []apiExamItem {
 
 func handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
 	w.Write(indexHTML)
 }
 
@@ -580,8 +769,10 @@ func StartAPIServer(addr string) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/bind", handleAPIBind)
 	mux.HandleFunc("/api/query", handleAPIQuery)
+	mux.HandleFunc("/api/answersheet", handleAnswerSheet)
 	mux.HandleFunc("/manifest.json", handleManifest)
 	mux.HandleFunc("/sw.js", handleSW)
+	mux.HandleFunc("/egg.gif", handleEgg)
 	mux.HandleFunc("/icon-192.png", handleIcon192)
 	mux.HandleFunc("/icon-512.png", handleIcon512)
 	mux.HandleFunc("/", handleIndex)
@@ -602,6 +793,11 @@ func handleManifest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(manifestJSON)
 }
+func handleEgg(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "image/gif")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.Write(eggGIF)
+}
 func handleSW(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript")
 	w.Write(swJS)
@@ -618,129 +814,98 @@ func handleIcon512(w http.ResponseWriter, r *http.Request) {
 }
 
 func generateIconPNG(size int) []byte {
-	// minimal PNG: blue rounded-square icon with "S" letter
-	buf := make([]byte, 0, size*size*3)
-	buf = append(buf, pngHeader()...)
-	buf = append(buf, pngIHDR(size)...)
-	buf = append(buf, pngIDAT(size)...)
-	buf = append(buf, pngIEND()...)
-	return buf
-}
+	img := image.NewRGBA(image.Rect(0, 0, size, size))
+	red := color.RGBA{0xC6, 0x28, 0x28, 0xFF}
+	gold := color.RGBA{0xFF, 0xD7, 0x00, 0xFF}
 
-func pngHeader() []byte {
-	return []byte{137, 80, 78, 71, 13, 10, 26, 10}
-}
+	// red circle background
+	drawCircle(img, size/2, size/2, size/2, red)
 
-func pngIHDR(size int) []byte {
-	data := make([]byte, 13)
-	data[0] = byte(size >> 24)
-	data[1] = byte(size >> 16)
-	data[2] = byte(size >> 8)
-	data[3] = byte(size)
-	data[4] = byte(size >> 24)
-	data[5] = byte(size >> 16)
-	data[6] = byte(size >> 8)
-	data[7] = byte(size)
-	data[8] = 8 // 8-bit color
-	data[9] = 2 // RGB
-	return pngChunk("IHDR", data)
-}
+	cx, cy := size/2, size/2
+	s := float64(size)
 
-func pngIDAT(size int) []byte {
-	var raw []byte
-	center := size / 2
-	radius := int(float64(size) * 0.4)
+	// filled V-shape chevron (two triangles forming a ^)
+	tipX, tipY := cx, cy+int(-0.30*s)
+	baseY := cy + int(0.22*s)
+	thick := int(s * 0.06)
 
-	for y := 0; y < size; y++ {
-		raw = append(raw, 0) // filter: none
-		for x := 0; x < size; x++ {
-			dx, dy := x-center, y-center
-			dist := dx*dx + dy*dy
-			innerR := int(float64(size) * 0.28)
-			if dist <= innerR*innerR {
-				// inner white circle
-				raw = append(raw, 255, 255, 255)
-			} else if dist <= radius*radius {
-				// blue ring
-				raw = append(raw, 59, 130, 246)
-			} else {
-				// transparent/white background
-				raw = append(raw, 240, 242, 245)
+	// draw filled triangles for left and right wings
+	for dy := 0; dy <= baseY-tipY; dy++ {
+		progress := float64(dy) / float64(baseY-tipY)
+		centerDist := progress * float64(cy+int(0.31*s)-tipX)
+		for dx := -thick / 2; dx <= thick/2; dx++ {
+			xL := tipX - int(centerDist) + dx
+			xR := tipX + int(centerDist) + dx
+			y := tipY + dy
+			if xL >= 0 && xL < size && y >= 0 && y < size {
+				img.Set(xL, y, gold)
+			}
+			if xR >= 0 && xR < size && y >= 0 && y < size {
+				img.Set(xR, y, gold)
 			}
 		}
 	}
 
-	compressed := zlibCompress(raw)
-	return pngChunk("IDAT", compressed)
+	// rounded caps at the bottom of each wing
+	bottomLX := cx - int(0.31*s)
+	bottomRX := cx + int(0.31*s)
+	capR := thick / 2
+	drawCircle(img, bottomLX, baseY, capR, gold)
+	drawCircle(img, bottomRX, baseY, capR, gold)
+	// rounded cap at the tip
+	drawCircle(img, cx, tipY, capR, gold)
+
+	var buf bytes.Buffer
+	png.Encode(&buf, img)
+	return buf.Bytes()
 }
 
-func pngIEND() []byte {
-	return pngChunk("IEND", nil)
-}
-
-func pngChunk(typ string, data []byte) []byte {
-	n := len(data)
-	chunk := make([]byte, 8+n)
-	chunk[0] = byte(n >> 24)
-	chunk[1] = byte(n >> 16)
-	chunk[2] = byte(n >> 8)
-	chunk[3] = byte(n)
-	copy(chunk[4:8], typ)
-	copy(chunk[8:], data)
-	crc := crc32IEEE(chunk[4 : 8+n])
-	chunk = append(chunk, byte(crc>>24), byte(crc>>16), byte(crc>>8), byte(crc))
-	return chunk
-}
-
-func zlibCompress(data []byte) []byte {
-	// minimal deflate + zlib wrapper for raw RGB data
-	// zlib header: CMF=0x78 FLG=0x01 (no dict, level 0)
-	out := []byte{0x78, 0x01}
-
-	pos := 0
-	for pos < len(data) {
-		blockLen := len(data) - pos
-		if blockLen > 65535 {
-			blockLen = 65535
-		}
-		isLast := pos+blockLen >= len(data)
-		if isLast {
-			out = append(out, 1) // final block
-		} else {
-			out = append(out, 0) // non-final block
-		}
-		out = append(out, byte(blockLen), byte(blockLen>>8))
-		out = append(out, byte(^blockLen), byte(^blockLen>>8))
-		out = append(out, data[pos:pos+blockLen]...)
-		pos += blockLen
-	}
-
-	// adler32 checksum of original data
-	a32 := adler32(data)
-	out = append(out, byte(a32>>24), byte(a32>>16), byte(a32>>8), byte(a32))
-	return out
-}
-
-func crc32IEEE(data []byte) uint32 {
-	crc := uint32(0xFFFFFFFF)
-	for _, b := range data {
-		crc ^= uint32(b)
-		for i := 0; i < 8; i++ {
-			if crc&1 != 0 {
-				crc = (crc >> 1) ^ 0xEDB88320
-			} else {
-				crc >>= 1
+func drawCircle(img *image.RGBA, cx, cy, r int, c color.RGBA) {
+	rr := r * r
+	for y := -r; y <= r; y++ {
+		for x := -r; x <= r; x++ {
+			if x*x+y*y <= rr {
+				px, py := cx+x, cy+y
+				if px >= 0 && px < img.Bounds().Dx() && py >= 0 && py < img.Bounds().Dy() {
+					img.Set(px, py, c)
+				}
 			}
 		}
 	}
-	return crc ^ 0xFFFFFFFF
+	_ = draw.Draw
 }
 
-func adler32(data []byte) uint32 {
-	var a, b uint32 = 1, 0
-	for _, v := range data {
-		a = (a + uint32(v)) % 65521
-		b = (b + a) % 65521
+func drawRect(img *image.RGBA, x, y, w, h int, c color.RGBA) {
+	for dy := 0; dy < h; dy++ {
+		for dx := 0; dx < w; dx++ {
+			px, py := img.Bounds().Dx()/2+x+dx, img.Bounds().Dy()/2+y+dy
+			if px >= 0 && px < img.Bounds().Dx() && py >= 0 && py < img.Bounds().Dy() {
+				img.Set(px, py, c)
+			}
+		}
 	}
-	return b<<16 | a
 }
+
+func drawDiamond(img *image.RGBA, cxOffset, cyOffset, hh, hw int, c color.RGBA) {
+	cx := img.Bounds().Dx()/2 + cxOffset
+	cy := img.Bounds().Dy()/2 + cyOffset
+	for dy := -hh; dy <= hh; dy++ {
+		maxDX := hw * (hh - absI(dy)) / hh
+		for dx := -maxDX; dx <= maxDX; dx++ {
+			px, py := cx+dx, cy+dy
+			if px >= 0 && px < img.Bounds().Dx() && py >= 0 && py < img.Bounds().Dy() {
+				img.Set(px, py, c)
+			}
+		}
+	}
+}
+
+func absI(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+
+// ensure math is used (for future trig if needed)
+var _ = math.Pi
