@@ -306,7 +306,7 @@ function openSettings(){ document.getElementById('modal').classList.add('on'); h
 function egg(){
   var box=document.getElementById('eggBox');
   var gif=document.getElementById('eggGif');
-  if(!gif.src) gif.src='egg.gif';
+  gif.src='egg.gif';
   box.style.display=box.style.display==='none'?'block':'none';
   hp('light');
 }
