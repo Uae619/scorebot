@@ -396,18 +396,41 @@
     background: var(--glass-bg);
   }
   .fld select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23fff' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%236B7280' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 12px center; padding-right:32px;
-    background-color: var(--accent-from); color:#fff; border-color: transparent;
-    font-weight:600;
-    box-shadow: 0 2px 12px rgba(var(--accent-rgb),0.25);
+    background-color: var(--glass-bg-2); color: var(--text-primary); border-color: var(--hairline-solid);
+    font-weight:500; cursor:pointer;
+    box-shadow: none;
+    transition: all var(--dur-micro) var(--hmos-standard);
   }
   .fld select:focus {
-    background-color: var(--accent-from); color:#fff;
-    box-shadow: 0 0 0 4px rgba(var(--accent-rgb),0.14), 0 0 28px rgba(var(--accent-rgb),0.15);
+    background-color: var(--glass-bg); color: var(--text-primary);
+    border-color: var(--accent-from);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.08), 0 0 20px rgba(var(--accent-rgb),0.10);
   }
   /* Platform select options popup */
   .fld select option { background: #fff; color: #1F2937; font-weight:500; }
+
+  /* ---- Custom Dropdown (HarmonyOS glass) ---- */
+  .hmos-dropdown {
+    position:absolute; top:100%; left:0; right:0; margin-top:6px;
+    background: rgba(255,255,255,0.94); backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
+    border-radius:14px; border:1px solid rgba(0,0,0,0.06);
+    box-shadow:0 4px 32px rgba(var(--accent-rgb),0.10),0 8px 24px rgba(0,0,0,0.08);
+    overflow:hidden; z-index:300; display:none;
+    animation: ddIn .25s var(--hmos-emphasized);
+  }
+  .hmos-dropdown.show { display:block; }
+  @keyframes ddIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+  .hmos-dd-opt {
+    padding:13px 16px; font-size:15px; font-weight:500; cursor:pointer;
+    color:var(--text-primary); transition: background .12s ease;
+    border-bottom:1px solid rgba(0,0,0,0.04);
+  }
+  .hmos-dd-opt:last-child { border:none; }
+  .hmos-dd-opt:active, .hmos-dd-opt.selected {
+    background: rgba(var(--accent-rgb),0.08); color: var(--accent-from);
+  }
   .btn-full {
     width:100%; border:none; border-radius: var(--r-btn); font-size:15px; font-weight:600; cursor:pointer;
     background: linear-gradient(135deg, var(--accent-from), var(--accent-to));
@@ -557,6 +580,51 @@ function setTheme(name,el){
   document.documentElement.setAttribute('data-theme', saved);
   var dot = document.querySelector('.color-dot[data-theme="'+saved+'"]');
   if(dot) { document.querySelectorAll('.color-dot').forEach(function(d){ d.classList.remove('active'); }); dot.classList.add('active'); }
+})();
+
+// -- custom platform dropdown (HarmonyOS glass) --
+(function(){
+  var sel=document.getElementById('b-plat');
+  if(!sel) return;
+  var wrap=document.createElement('div');
+  wrap.style.position='relative';
+  sel.parentNode.insertBefore(wrap,sel); wrap.appendChild(sel);
+
+  var dd=document.createElement('div');
+  dd.className='hmos-dropdown';
+  wrap.appendChild(dd);
+
+  function buildOpts(){
+    dd.innerHTML='';
+    for(var i=0;i<sel.options.length;i++){
+      var o=sel.options[i];
+      var div=document.createElement('div');
+      div.className='hmos-dd-opt'+(o.selected?' selected':'');
+      div.textContent=o.text;
+      div.addEventListener('click',function(idx){
+        return function(e){
+          e.stopPropagation();
+          sel.selectedIndex=idx;
+          sel.dispatchEvent(new Event('change',{bubbles:true}));
+          buildOpts();
+          dd.classList.remove('show');
+        };
+      }(i));
+      dd.appendChild(div);
+    }
+  }
+  buildOpts();
+
+  sel.addEventListener('mousedown',function(e){
+    e.preventDefault();
+    buildOpts();
+    dd.classList.toggle('show');
+  });
+  sel.addEventListener('change',buildOpts);
+
+  document.addEventListener('click',function(e){
+    if(!wrap.contains(e.target)) dd.classList.remove('show');
+  });
 })();
 
 // -- header glass on scroll --
