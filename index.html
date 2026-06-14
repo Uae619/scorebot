@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#F5F7FF">
+<meta name="theme-color" content="#F5F7FF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0E1A" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="查分">
 <link rel="manifest" href="/manifest.json">
@@ -59,14 +61,37 @@
     --accent-from: #374151; --accent-to: #6B7280; --accent-rgb: 55,65,81;
   }
 
-  /* ---- Dark mode ---- */
+  /* ---- Dark mode (manual toggle "data-dark" OR system "prefers-color-scheme") ---- */
+  :root[data-dark="true"] {
+    --bg-deep: #0A0E1A; --bg-surface: #111827;
+    --glass-bg: rgba(18,25,45,0.78); --glass-bg-2: rgba(18,25,45,0.50);
+    --glass-border:rgba(255,255,255,0.08);
+    --text-primary: #F9FAFB; --text-secondary:#9CA3AF; --text-tertiary: #6B7280;
+    --hairline: rgba(255,255,255,0.06); --hairline-solid:#374151;
+  }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-dark="false"]) {
       --bg-deep: #0A0E1A; --bg-surface: #111827;
       --glass-bg: rgba(18,25,45,0.78); --glass-bg-2: rgba(18,25,45,0.50);
       --glass-border:rgba(255,255,255,0.08);
       --text-primary: #F9FAFB; --text-secondary:#9CA3AF; --text-tertiary: #6B7280;
       --hairline: rgba(255,255,255,0.06); --hairline-solid:#374151;
+    }
+  }
+  :root[data-dark="true"] .hmos-dropdown {
+    background: rgba(18,25,45,0.94); border-color: rgba(255,255,255,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-dark="false"]) .hmos-dropdown {
+      background: rgba(18,25,45,0.94); border-color: rgba(255,255,255,0.08);
+    }
+  }
+  :root[data-dark="true"] .hmos-dd-opt {
+    border-bottom-color: rgba(255,255,255,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-dark="false"]) .hmos-dd-opt {
+      border-bottom-color: rgba(255,255,255,0.06);
     }
   }
 
@@ -537,6 +562,8 @@
       </div>
     </div>
 
+    <div class="srow2"><div><div class="sl">暗色模式</div><div class="sd">切换深色/浅色外观</div></div><button class="tgl" id="darkBtn" onclick="togDark()"></button></div>
+
     <div class="srow2" onclick="egg()" style="cursor:pointer;"><div><div class="sl">彩蛋</div><div class="sd">点开有惊喜</div></div><span style="color:var(--text-tertiary);">&#127855;</span></div>
     <div id="eggBox" style="display:none;text-align:center;padding:10px 0 6px;">
       <img src="" id="eggGif" style="max-width:100%;max-height:220px;border-radius:16px;" alt="丑橘">
@@ -581,6 +608,32 @@ function setTheme(name,el){
   var dot = document.querySelector('.color-dot[data-theme="'+saved+'"]');
   if(dot) { document.querySelectorAll('.color-dot').forEach(function(d){ d.classList.remove('active'); }); dot.classList.add('active'); }
 })();
+
+// -- dark mode toggle --
+var isDark = localStorage.getItem('sb_dark');
+var darkBtn = document.getElementById('darkBtn');
+function uDark(){
+  if(isDark==='true'){
+    document.documentElement.setAttribute('data-dark','true');
+    darkBtn.className='tgl on';
+  }else if(isDark==='false'){
+    document.documentElement.setAttribute('data-dark','false');
+    darkBtn.className='tgl';
+  }else{
+    // null → use system preference, remove data-dark
+    document.documentElement.removeAttribute('data-dark');
+    darkBtn.className='tgl';
+  }
+}
+uDark();
+function togDark(){
+  if(isDark==='true') isDark='false';
+  else if(isDark==='false') isDark=null;
+  else isDark='true';
+  localStorage.setItem('sb_dark',isDark);
+  uDark();
+  hp('light');
+}
 
 // -- custom platform dropdown (HarmonyOS glass) --
 (function(){
