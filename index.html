@@ -356,12 +356,25 @@
     background-size:200% 100%; animation:skSh 1.6s infinite; border-radius:8px;
   }
   @keyframes skSh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  @keyframes ripple {
+    0%   { transform:translate(-50%,-50%) scale(0); opacity:.6; }
+    100% { transform:translate(-50%,-50%) scale(12); opacity:0; }
+  }
   .sk-big { height:48px; margin-bottom:10px; }
   .sk-md  { height:16px; margin-bottom:8px; }
   .sk-sm  { height:16px; margin-bottom:8px; width:55%; }
 
   .empty { text-align:center; padding:48px 20px; color: var(--text-tertiary); }
   .empty .ic { font-size:48px; margin-bottom:10px; opacity:.35; }
+
+  /* HarmonyOS ripple */
+  .hmos-ripple {
+    position:absolute; width:24px; height:24px; border-radius:50%;
+    background: radial-gradient(circle, rgba(124,77,255,.30) 0%, rgba(180,124,255,.10) 40%, transparent 70%);
+    transform: translate(-50%,-50%) scale(0);
+    animation: ripple .55s var(--hmos-accelerate) forwards;
+    pointer-events:none; z-index: 9999;
+  }
 
   /* ============================================================
      SETTINGS SHEET — 大圆角毛玻璃浮层
@@ -570,19 +583,18 @@ function hp(t){
 var header=document.getElementById('header');
 window.addEventListener('scroll',function(){ header.classList.toggle('scrolled',window.scrollY>20); });
 
-// -- touch ripple on interactive elements --
+// -- touch ripple on interactive elements (HarmonyOS 光晕扩散) --
 document.addEventListener('touchstart',function(e){
-  var el=e.target.closest('.gear,.exam,.srow,.card,.info-cell,.tag');
+  if(!e.touches.length) return;
+  var el=e.target.closest('.gear,.exam,.srow,.card,.info-cell,.tag,.go,.btn-full');
   if(!el) return;
   var rect=el.getBoundingClientRect();
   var x=e.touches[0].clientX-rect.left, y=e.touches[0].clientY-rect.top;
   var ripple=document.createElement('span');
-  ripple.style.cssText='position:absolute;width:20px;height:20px;border-radius:50%;'
-    +'background:radial-gradient(circle,rgba(124,77,255,.25),transparent);'
-    +'left:'+x+'px;top:'+y+'px;transform:translate(-50%,-50%) scale(0);'
-    +'animation:ripple .5s var(--hmos-accelerate) forwards;pointer-events:none;z-index:0;';
-  el.style.position=el.style.position||'relative';
-  el.style.overflow='hidden';
+  ripple.className='hmos-ripple';
+  ripple.style.left=x+'px'; ripple.style.top=y+'px';
+  if(!el.style.position||el.style.position==='static') el.style.position='relative';
+  if(getComputedStyle(el).overflow==='visible') el.style.overflow='hidden';
   el.appendChild(ripple);
   ripple.addEventListener('animationend',function(){ ripple.remove(); });
 },{passive:true});
