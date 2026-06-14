@@ -150,7 +150,8 @@
   .seg button.on {
     background: linear-gradient(135deg, var(--accent-from), var(--accent-to));
     color:#fff;
-    box-shadow: 0 4px 20px rgba(var(--accent-rgb),0.35), 0 0 0 6px rgba(var(--accent-rgb),0.10);
+    box-shadow: 0 4px 20px rgba(var(--accent-rgb),0.40), 0 0 32px rgba(var(--accent-rgb),0.20), 0 0 0 6px rgba(var(--accent-rgb),0.12);
+    position:relative; z-index:1;
   }
 
   /* ---- PAGE ---- */
@@ -252,12 +253,14 @@
 
   /* ---- EXAM DETAIL ---- */
   .detail {
-    background: var(--glass-bg); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+    background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     border-radius: var(--r-card-md); padding:22px; margin-top:10px;
     border: 1px solid var(--glass-border);
-    box-shadow: 0 4px 32px rgba(var(--accent-rgb),0.08), 0 8px 20px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 16px rgba(var(--accent-rgb),0.04), 0 4px 12px rgba(0,0,0,0.04);
     animation: detIn .4s var(--hmos-emphasized); transform-origin:top;
   }
+  /* 答题卡图片区域零光晕避免卡顿 */
+  .sheet-wrap img { box-shadow: none !important; }
   @keyframes detIn { from{opacity:0;transform:scaleY(.92) translateY(-8px)} to{opacity:1;transform:scaleY(1) translateY(0)} }
   .detail h3 { font-size:20px; font-weight:700; margin-bottom:2px; }
   .detail .dm { font-size:12px; color: var(--text-tertiary); margin-bottom:14px; }
@@ -393,9 +396,18 @@
     background: var(--glass-bg);
   }
   .fld select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%236B7280' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23fff' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 12px center; padding-right:32px;
+    background-color: var(--accent-from); color:#fff; border-color: transparent;
+    font-weight:600;
+    box-shadow: 0 2px 12px rgba(var(--accent-rgb),0.25);
   }
+  .fld select:focus {
+    background-color: var(--accent-from); color:#fff;
+    box-shadow: 0 0 0 4px rgba(var(--accent-rgb),0.14), 0 0 28px rgba(var(--accent-rgb),0.15);
+  }
+  /* Platform select options popup */
+  .fld select option { background: #fff; color: #1F2937; font-weight:500; }
   .btn-full {
     width:100%; border:none; border-radius: var(--r-btn); font-size:15px; font-weight:600; cursor:pointer;
     background: linear-gradient(135deg, var(--accent-from), var(--accent-to));
@@ -554,7 +566,7 @@ window.addEventListener('scroll',function(){ header.classList.toggle('scrolled',
 // -- touch ripple (HarmonyOS 光晕扩散) --
 document.addEventListener('touchstart',function(e){
   if(!e.touches.length) return;
-  var el=e.target.closest('.gear,.exam,.srow,.card,.info-cell,.tag,.go,.btn-full');
+  var el=e.target.closest('.gear,.exam,.srow,.card,.info-cell,.tag,.go,.btn-full,.seg button');
   if(!el) return;
   var rect=el.getBoundingClientRect();
   var x=e.touches[0].clientX-rect.left, y=e.touches[0].clientY-rect.top;
