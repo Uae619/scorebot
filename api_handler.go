@@ -60,6 +60,7 @@ type apiExamItem struct {
 	Time      string `json:"time"`
 	Score     string `json:"score,omitempty"`
 	FullScore string `json:"fullScore,omitempty"`
+	Status    string `json:"status,omitempty"`
 }
 
 type apiQueryResult struct {
@@ -845,10 +846,16 @@ func formatQTExamItems(exams []map[string]any) []apiExamItem {
 	shortIDs := buildQTExamShortIDs(exams)
 	items := make([]apiExamItem, 0, len(exams))
 	for _, exam := range exams {
+		// QT exam score=0 means total not calculated yet → grading in progress
+		status := ""
+		if asString(exam["score"]) == "0" && asString(exam["examPublishType"]) != "0" {
+			status = "批阅中"
+		}
 		items = append(items, apiExamItem{
-			ID:   shortIDs[asString(exam["examGuid"])],
-			Name: defaultString(asString(exam["examName"]), "未知"),
-			Time: stringOrNA(exam["time"]),
+			ID:     shortIDs[asString(exam["examGuid"])],
+			Name:   defaultString(asString(exam["examName"]), "未知"),
+			Time:   stringOrNA(exam["time"]),
+			Status: status,
 		})
 	}
 	return items
