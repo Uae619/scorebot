@@ -470,17 +470,6 @@
   .sep-line { height:1px; background: var(--hairline); margin:14px 0; }
   .link { color: var(--accent-from); font-weight:600; cursor:pointer; }
 
-  /* 会考查询按钮 */
-  .btn-hk {
-    padding:10px 28px; border:1px solid var(--hairline-solid);
-    border-radius: var(--r-pill); font-size:14px; font-weight:600; cursor:pointer;
-    background: var(--glass-bg); color: var(--text-primary);
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    transition: all var(--dur-short) var(--hmos-standard);
-    box-shadow: 0 1px 3px rgba(var(--accent-rgb),0.04);
-  }
-  .btn-hk:active { transform:scale(.94); border-color: var(--accent-from); box-shadow: 0 0 0 4px rgba(var(--accent-rgb),0.10); }
-
   /* 批阅中 badge */
   .badge-grading {
     display:inline-block; padding:2px 8px; border-radius: var(--r-pill);
@@ -531,6 +520,7 @@
   <div class="seg">
     <button class="on" data-s="query" onclick="go('query')">查询</button>
     <button data-s="bind" onclick="go('bind')">绑定</button>
+    <button data-s="huikao" onclick="go('huikao')">会考</button>
   </div>
 
   <div id="p-query" class="page show">
@@ -541,9 +531,15 @@
       </div>
     </div>
     <div id="res" style="margin-top:16px;"></div>
-    <div style="text-align:center;margin-top:24px;">
-      <button class="btn-hk" onclick="window.open('https://www.eeafj.cn','_blank')">会考查询</button>
-      <p style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">跳转到福建省教育考试院</p>
+  </div>
+
+  <div id="p-huikao" class="page">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60dvh;text-align:center;padding:20px;">
+      <div style="font-size:56px;margin-bottom:12px;">&#127891;</div>
+      <h2 style="font-size:22px;font-weight:700;margin-bottom:6px;">会考查询</h2>
+      <p style="font-size:14px;color:var(--text-secondary);margin-bottom:24px;max-width:280px;">跳转至福建省教育考试院官网<br>查询学业水平考试成绩</p>
+      <button class="btn-full" onclick="window.open('https://www.eeafj.cn','_blank')" style="max-width:260px;animation:none;">前往福建省教育考试院</button>
+      <p style="font-size:11px;color:var(--text-tertiary);margin-top:12px;">www.eeafj.cn</p>
     </div>
   </div>
 
