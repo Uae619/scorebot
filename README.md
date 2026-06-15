@@ -27,17 +27,6 @@
 
 ---
 
-## 本地运行
-
-```bash
-# 启动服务
-CHAT_ADAPTER=http DATA_STORE=sqlite SQLITE_STORE_PATH=data.sqlite API_LISTEN=0.0.0.0:8080 ./scorebot
-```
-
-浏览器打开 `http://localhost:8080`
-
----
-
 ## 部署
 
 - **前端**：EdgeOne Pages（静态托管）
