@@ -13,3 +13,6 @@ data.sqlite
 fc-deploy/scorebot
 scorebot-fc.zip
 fc-deploy/index.html
+
+# Migration prompt — local only
+MIGRATION_PROMPT.md
