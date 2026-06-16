@@ -163,13 +163,13 @@
   body::before {
     content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
     background:
-      radial-gradient(ellipse 60% 35% at 50% 12%, rgba(var(--accent-rgb),0.05) 0%, transparent 50%),
-      radial-gradient(ellipse 40% 40% at 80% 65%, rgba(var(--accent-rgb),0.03) 0%, transparent 50%);
-    animation: aurora 20s var(--hmos-standard) infinite alternate;
+      radial-gradient(ellipse 60% 35% at 50% 12%, rgba(var(--accent-rgb),0.06) 0%, transparent 50%),
+      radial-gradient(ellipse 40% 40% at 80% 65%, rgba(var(--accent-rgb),0.04) 0%, transparent 50%);
+    animation: aurora 14s var(--hmos-standard) infinite alternate;
   }
   @keyframes aurora {
-    0%   { opacity:.60; transform:scale(1) translateY(0); }
-    100% { opacity:1; transform:scale(1.015) translateY(-4px); }
+    0%   { opacity:.5; transform:scale(1) translateY(0); }
+    100% { opacity:1; transform:scale(1.04) translateY(-8px); }
   }
   .app { width:100%; max-width:480px; min-height:100dvh; display:flex; flex-direction:column; position:relative; z-index:1; }
 
@@ -240,7 +240,7 @@
   /* ---- PAGE ---- */
   .page { flex:1; padding:12px 20px 24px; display:none; }
   .page.show { display:block; animation: pageIn var(--dur-standard) var(--hmos-decelerate); }
-  @keyframes pageIn { from{opacity:0;filter:blur(4px)} to{opacity:1;filter:blur(0)} }
+  @keyframes pageIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
 
   /* ---- SEARCH ---- */
   .search-wrap {
@@ -268,7 +268,9 @@
     color:#fff; white-space:nowrap;
     box-shadow: 0 2px 8px rgba(var(--accent-rgb),0.20), 0 1px 3px rgba(0,0,0,0.06);
     transition: all var(--dur-short) var(--hmos-standard);
+    animation: floatBtn 3s var(--hmos-standard) infinite;
   }
+  @keyframes floatBtn { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
   /* Specular highlight — Liquid Glass 顶部高光 */
   .search-wrap .go::before {
     content:''; position:absolute; top:1px; left:8px; right:8px; height:38%;
@@ -280,11 +282,11 @@
     transform: translateY(-1px);
   }
   .go:active {
-    transform: scale(0.96);
+    transform: scale(0.96); animation: none;
     background: linear-gradient(135deg, var(--accent-to), var(--accent-from));
     box-shadow: 0 1px 4px rgba(var(--accent-rgb),0.25), 0 1px 2px rgba(0,0,0,0.10);
   }
-  .go:disabled { opacity:.40; pointer-events:none; }
+  .go:disabled { opacity:.40; pointer-events:none; animation:none; }
 
   /* ---- PROFILE CARD ---- */
   .card {
@@ -301,7 +303,7 @@
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
     pointer-events:none; border-radius:1px;
   }
-  @keyframes cardUp { from{opacity:0;transform:translateY(20px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+  @keyframes cardUp { from{opacity:0;transform:translateY(28px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
   .card:nth-child(1){animation-delay:.03s}
   .card:nth-child(2){animation-delay:.07s}
   .card:nth-child(3){animation-delay:.11s}
@@ -368,7 +370,7 @@
   }
   /* 答题卡图片区域零光晕避免卡顿 */
   .sheet-wrap img { box-shadow: none !important; }
-  @keyframes detIn { from{opacity:0;transform:scaleY(.95) translateY(-4px)} to{opacity:1;transform:scaleY(1) translateY(0)} }
+  @keyframes detIn { from{opacity:0;transform:scaleY(.92) translateY(-8px)} to{opacity:1;transform:scaleY(1) translateY(0)} }
   .detail h3 { font-size:20px; font-weight:700; margin-bottom:2px; }
   .detail .dm { font-size:12px; color: var(--text-tertiary); margin-bottom:14px; }
   .sh { display:flex; align-items:baseline; gap:4px; margin-bottom:10px; }
@@ -437,7 +439,7 @@
     align-items:flex-end; justify-content:center;
   }
   .overlay.on { display:flex; animation: overlayOn var(--dur-short) var(--hmos-decelerate); }
-  @keyframes overlayOn { from{opacity:0; backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0);} to{opacity:1; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);} }
+  @keyframes overlayOn { from{opacity:0} to{opacity:1} }
   .sheet {
     width:100%; max-width:480px; position:relative; overflow:hidden;
     background: var(--glass-bg); backdrop-filter: blur(36px) saturate(1.6); -webkit-backdrop-filter: blur(36px) saturate(1.6);
@@ -552,6 +554,7 @@
     color:#fff; height:44px; padding:0; position:relative; overflow:hidden;
     box-shadow: 0 2px 8px rgba(var(--accent-rgb),0.20), 0 1px 3px rgba(0,0,0,0.06);
     transition: all var(--dur-short) var(--hmos-standard);
+    animation: floatBtn 3.2s var(--hmos-standard) infinite; animation-delay: 0.4s;
   }
   .btn-full::before {
     content:''; position:absolute; top:1px; left:12px; right:12px; height:38%;
@@ -563,11 +566,11 @@
     transform: translateY(-1px);
   }
   .btn-full:active {
-    transform: scale(.97);
+    transform: scale(.97); animation: none;
     background: linear-gradient(135deg, var(--accent-to), var(--accent-from));
     box-shadow: 0 1px 4px rgba(var(--accent-rgb),0.25), 0 1px 2px rgba(0,0,0,0.10);
   }
-  .btn-full:disabled { opacity:.40; pointer-events:none; }
+  .btn-full:disabled { opacity:.40; pointer-events:none; animation:none; }
   .sep-line { height:1px; background: var(--hairline); margin:14px 0; }
   .link { color: var(--accent-from); font-weight:600; cursor:pointer; }
 
