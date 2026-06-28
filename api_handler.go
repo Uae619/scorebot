@@ -545,6 +545,48 @@ func handleDebugQT(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, apiResponse{Success: true, Data: results})
 }
 
+// ---------- GET /api/debug-qt-grade ----------
+func handleDebugQTGrade(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	qqid := strings.TrimSpace(r.URL.Query().Get("qqid"))
+	if qqid == "" {
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "缺少 qqid"})
+		return
+	}
+	userdata := opView(qqid)
+	if ok, _ := userdata["Return"].(bool); !ok {
+		writeJSON(w, http.StatusNotFound, apiResponse{Success: false, Error: "未绑定"})
+		return
+	}
+	ctx := apiMessageContext(r, qqid)
+	handler := newCommandHandler(&noopSender{})
+	handler.userdata = userdata
+
+	exams, _, _, errMsg := handler.qtLoadExamsWithAutoClaim(ctx)
+	if errMsg != "" {
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: errMsg})
+		return
+	}
+	exam, errMsg := qtResolveExamSelector(r.URL.Query().Get("exam_id"), exams)
+	if errMsg != "" {
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: errMsg})
+		return
+	}
+	subjectsRes, _, _ := handler.qtExecuteWithProfile(ctx, "subjects",
+		func(token string, userInfo map[string]any) map[string]any {
+			return qtGetQuestionSubjectsWithContext(ctx, token, userInfo, exam)
+		})
+	subjectsData := asMap(subjectsRes["data"])
+	subjectCount := qtSubjectCount(subjectsData)
+
+	gradeRes, _, _ := handler.qtExecuteWithProfile(ctx, "grade",
+		func(token string, userInfo map[string]any) map[string]any {
+			return qtGetQuestionSubjectGradeWithContext(ctx, token, userInfo, exam, "总分", subjectCount, 1)
+		})
+	writeJSON(w, http.StatusOK, apiResponse{Success: true, Data: gradeRes})
+}
+
 // ---------- GET /api/query ----------
 
 func handleAPIQuery(w http.ResponseWriter, r *http.Request) {
@@ -888,6 +930,7 @@ func StartAPIServer(addr string) error {
 		}
 		writeJSON(w, http.StatusOK, apiResponse{Success: true, Data: "pong"})
 	})
+	mux.HandleFunc("/api/debug-qt-grade", handleDebugQTGrade)
 	mux.HandleFunc("/api/debug-qt", handleDebugQT)
 	mux.HandleFunc("/api/bind", handleAPIBind)
 	mux.HandleFunc("/api/query", handleAPIQuery)
