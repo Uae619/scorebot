@@ -160,6 +160,10 @@
       var(--bg-surface);
     background-size: 100% 100%, 100% 100%, 100% 100%, 256px 256px, 100% 100%;
   }
+  #particles-canvas {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    width: 100%; height: 100%;
+  }
   body::before {
     content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
     background:
@@ -626,6 +630,7 @@
 </style>
 </head>
 <body>
+<canvas id="particles-canvas"></canvas>
 <div class="app">
   <div class="header" id="header">
     <h1>查分</h1>
@@ -1032,6 +1037,63 @@ _iv.addEventListener('touchend',function(e){
     }
   }
 });
+</script>
+<script>
+// --- 粒子背景（Ported from Mineradio wallpaper） ---
+(function(){'use strict';
+  var c=document.getElementById('particles-canvas'),x=c.getContext('2d');
+  var W,H,dpr=1,run=true,pts=[];
+  function rs(s){return Math.abs(Math.sin(s*3187.917)*43758.5453)%1}
+  function ac(){var s=getComputedStyle(document.documentElement);return(s.getPropertyValue('--accent-rgb')||'124,77,255').trim().split(',').map(Number)}
+  function isDark(){return document.documentElement.matches('[data-dark="true"]')||(!document.documentElement.getAttribute('data-dark')&&matchMedia('(prefers-color-scheme:dark)').matches)}
+  function ensure(){
+    var t=Math.min(480,Math.max(180,Math.round(innerWidth*innerHeight/6400)));
+    while(pts.length<t){var i=pts.length+1;pts.push({s:i*11.37,x:rs(i),l:rs(i*5.9),z:rs(i*8.1),z2:0.4+rs(i*4.2)*1.6})}
+    if(pts.length>t+40)pts.length=t
+  }
+  function resize(){
+    dpr=Math.min(1.5,Math.max(1,window.devicePixelRatio||1));
+    W=Math.max(1,Math.floor(innerWidth*dpr));
+    H=Math.max(1,Math.floor(innerHeight*dpr));
+    c.width=W;c.height=H;c.style.width=innerWidth+'px';c.style.height=innerHeight+'px';
+    x.setTransform(dpr,0,0,dpr,0,0);ensure()
+  }
+  function draw(t){
+    if(!run){requestAnimationFrame(draw);return}
+    var n=t*1e-3,a=ac(),dark=isDark(),boost=dark?1.2:.7;
+    ensure();
+    x.clearRect(0,0,innerWidth,innerHeight);
+    x.save();
+    x.globalCompositeOperation='lighter';
+    var cx=innerWidth*.5,cy=innerHeight*.5+Math.sin(n*.2)*innerHeight*.012;
+    var rx=innerWidth*.38+Math.sin(n*.15)*innerWidth*.02;
+    var ry=innerHeight*.28+Math.sin(n*.18+1)*innerHeight*.015;
+    for(var i=0;i<pts.length;i++){
+      var p=pts[i],spd=.006+rs(p.s)*.018;
+      var ang=(p.x*Math.PI*2+n*spd+Math.sin(n*.05+p.s)*.12)%(Math.PI*2);
+      var rr=.15+p.z*.85,w=Math.sin(n*(.18+rs(p.s)*.15)+p.s)*10;
+      var px=cx+Math.cos(ang)*rx*rr+Math.sin(n*.09+p.s)*18;
+      var py=cy+Math.sin(ang*(1+rs(p.s*2)*.12))*ry*rr+w;
+      var tw=Math.pow(.5+.5*Math.sin(n*(.4+rs(p.s)*.35)+p.s),3);
+      var sz=Math.max(.6,p.z2*(.6+tw*1.4));
+      x.globalAlpha=(.04+tw*.20)*boost;
+      x.fillStyle='rgb('+a[0]+','+a[1]+','+a[2]+')';
+      x.beginPath();x.arc(px,py,sz*2.5,0,Math.PI*2);x.fill();
+      x.globalAlpha=(.08+tw*.12)*boost;
+      x.fillStyle='rgba(255,255,255,.85)';
+      x.beginPath();x.arc(px,py,sz*.8,0,Math.PI*2);x.fill();
+    }
+    var g=x.createRadialGradient(cx,cy,0,cx,cy,Math.max(innerWidth,innerHeight)*.45);
+    g.addColorStop(0,'rgba('+a[0]+','+a[1]+','+a[2]+','+(dark?.06:.035)+')');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    x.globalAlpha=.7;x.fillStyle=g;x.fillRect(0,0,innerWidth,innerHeight);
+    x.restore();
+    requestAnimationFrame(draw)
+  }
+  window.addEventListener('resize',resize);
+  document.addEventListener('visibilitychange',function(){run=!document.hidden;if(run)requestAnimationFrame(draw)});
+  resize();requestAnimationFrame(draw)
+})();
 </script>
 </body>
 </html>
