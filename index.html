@@ -1019,7 +1019,8 @@ async function det(qqid,eid,el){
 function detHtml(d){
   var isH=!!d.schoolRank;
   var h='<div class="detail"><h3>'+esc(d.examName)+'</h3><div class="dm">ID '+esc(d.examId)+' · '+esc(d.examTime)+'</div>';
-  h+='<div class="sh"><span class="big">'+esc(d.score)+'</span><span class="sep">/</span><span class="tot">'+esc(d.fullScore)+'</span></div>';
+  h+='<div class="sh"><span class="big">'+esc(d.fuScore||d.score)+'</span><span class="sep">/</span><span class="tot">'+esc(d.fuFullScore||d.fullScore)+'</span></div>';
+  if(d.fuScore) h+='<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:2px;">原始分 '+esc(d.score)+' → 赋分 '+esc(d.fuScore)+'</div>';
   h+='<div class="tags">';
   if(isH){
     if(d.schoolRank) h+='<span class="tag hi">校排名 '+esc(d.schoolRank)+'</span>';
@@ -1043,7 +1044,8 @@ function detHtml(d){
     for(var i=0;i<d.subjects.length;i++){
       var s=d.subjects[i],gc=(s.grade||'')[0]||'';
       h+='<div class="srow" style="cursor:pointer;" onclick="loadSheet(\''+ea(d.qqid)+'\',\''+ea(s.id)+'\',this)">';
-      h+='<span class="sn">'+esc(s.name)+'</span><span class="ss">'+esc(s.score)+'</span><span class="sf">/'+esc(s.fullScore)+'</span>';
+      h+='<span class="sn">'+esc(s.name)+(s.isFu?' <i style="font-style:normal;font-size:10px;color:#f59e0b;font-weight:600;">赋</i>':'')+'</span><span class="ss">'+esc(s.fuScore||s.score)+'</span><span class="sf">/'+esc(s.fuFullScore||s.fullScore)+'</span>';
+      if(s.isFu) h+='<span style="font-size:10px;color:#b45309;margin:0 4px;">('+esc(s.score)+')</span>';
       if(isH){
         h+='<span style="font-size:12px;color:var(--text-tertiary);">校'+(s.rank||'—')+' 班'+(s.classRank||'—')+'</span>';
       }else{

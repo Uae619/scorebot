@@ -80,6 +80,8 @@ type apiExamDetail struct {
 	ExamTime      string       `json:"examTime"`
 	Score         string       `json:"score"`
 	FullScore     string       `json:"fullScore"`
+	FuScore       string       `json:"fuScore,omitempty"`
+	FuFullScore   string       `json:"fuFullScore,omitempty"`
 	Grade         string       `json:"grade"`
 	RankLow       int          `json:"rankLow"`
 	RankHigh      int          `json:"rankHigh"`
@@ -92,15 +94,18 @@ type apiExamDetail struct {
 }
 
 type apiSubject struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Score     string `json:"score"`
-	FullScore string `json:"fullScore"`
-	Grade     string `json:"grade,omitempty"`
-	RankLow   int    `json:"rankLow,omitempty"`
-	RankHigh  int    `json:"rankHigh,omitempty"`
-	Rank      string `json:"rank,omitempty"`
-	ClassRank string `json:"classRank,omitempty"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Score      string `json:"score"`
+	FullScore  string `json:"fullScore"`
+	FuScore    string `json:"fuScore,omitempty"`
+	FuFullScore string `json:"fuFullScore,omitempty"`
+	IsFu       bool   `json:"isFu"`
+	Grade      string `json:"grade,omitempty"`
+	RankLow    int    `json:"rankLow,omitempty"`
+	RankHigh   int    `json:"rankHigh,omitempty"`
+	Rank       string `json:"rank,omitempty"`
+	ClassRank  string `json:"classRank,omitempty"`
 }
 
 type apiBindRequest struct {
@@ -795,6 +800,27 @@ func queryQTExamDetail(ctx *MessageContext, handler *CommandHandler, examID stri
 	totalStudents := asInt(totalReport["total"])
 	rankLow, rankHigh, _ := qtEstimateRankRange(totalGrade, totalStudents)
 
+	// 赋分
+	fuScore := defaultString(asString(totalReport["fuMyScore"]),
+		defaultString(asString(totalReport["fuScore"]), ""))
+	fuFullScore := defaultString(asString(totalReport["fuFullScore"]),
+		defaultString(asString(totalReport["fu_fullScore"]), ""))
+
+	// 逐科赋分映射 (from otherKM in 总分 grade response)
+	fuMap := map[string]map[string]string{}
+	if otherKM, ok := totalReport["otherKM"].([]any); ok {
+		for _, item := range otherKM {
+			if kmData, ok := item.(map[string]any); ok {
+				km := asString(kmData["km"])
+				fuMap[km] = map[string]string{
+					"score":     asString(kmData["fuScore"]),
+					"fullScore": asString(kmData["fuFullScore"]),
+					"isFu":      asString(kmData["fuTag"]),
+				}
+			}
+		}
+	}
+
 	// 逐科排名
 	visibleSubjects := qtVisibleSubjects(subjectsData)
 	subjectCount := qtSubjectCount(subjectsData)
@@ -806,6 +832,18 @@ func queryQTExamDetail(ctx *MessageContext, handler *CommandHandler, examID stri
 			Name:      km,
 			Score:     asString(subject["myScore"]),
 			FullScore: asString(subject["fullScore"]),
+		}
+
+		// 赋分
+		if fuData, ok := fuMap[km]; ok {
+			if fuData["isFu"] == "TRUE" || (fuData["score"] != "" && fuData["score"] != "0" && fuData["score"] != "-") {
+				sub.FuScore = "-"  // will be filled from otherKM if > 0
+			}
+			if fuData["score"] != "" && fuData["score"] != "0" && fuData["score"] != "-" {
+				sub.FuScore = fuData["score"]
+				sub.FuFullScore = fuData["fullScore"]
+				sub.IsFu = fuData["isFu"] == "TRUE"
+			}
 		}
 
 		// 只对非"总分"科目查排名
@@ -835,6 +873,8 @@ func queryQTExamDetail(ctx *MessageContext, handler *CommandHandler, examID stri
 		ExamTime:      stringOrNA(exam["time"]),
 		Score:         score,
 		FullScore:     fullScore,
+		FuScore:       fuScore,
+		FuFullScore:   fuFullScore,
 		Grade:         totalGrade,
 		RankLow:       rankLow,
 		RankHigh:      rankHigh,
