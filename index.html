@@ -1124,6 +1124,13 @@ function init(){
     stars.push({bx:bx,by:by,x:bx,y:by,sz:.1+rs(n*23.7)*.4,ph:rs(n*31.1)*Math.PI*2,sp:.4+rs(n*41.3)*.4,ly:rs(n*89.1),dr:rs(n*55.3)*Math.PI*2,ds:.04+rs(n*61.7)*.08});
     n++;
   }
+  // 输入框与标签栏中间
+  var midN=Math.round(cnt*.10);
+  for(var i=0;i<midN;i++){
+    var bx=rs(n*13.1)*innerWidth,by=rs(n*29.3)*(innerHeight*.18+innerHeight*.08);
+    stars.push({bx:bx,by:by,x:bx,y:by,sz:.08+rs(n*23.7)*.3,ph:rs(n*31.1)*Math.PI*2,sp:.4+rs(n*41.3)*.4,ly:rs(n*89.1),dr:rs(n*55.3)*Math.PI*2,ds:.03+rs(n*61.7)*.07});
+    n++;
+  }
 }
 function resize(){
   dpr=Math.min(1.5,Math.max(1,window.devicePixelRatio||1));
