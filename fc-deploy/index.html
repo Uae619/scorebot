@@ -894,6 +894,7 @@ async function bind(){
     if(!d.success){ toast(d.error,'err',5000); hp('err'); return; }
     toast(d.data.message,'ok',2800); hp('ok');
     document.getElementById('qq').value=q;
+    localStorage.setItem('sb_bind_'+q, JSON.stringify({platform:pl, username:u, password:pw}));
     setTimeout(function(){ go('query'); },900);
   }catch(e){ toast('网络错误: '+(e.name==='AbortError'?'请求超时(25秒)':(e.message||e)),'err',4000); hp('err'); }
   finally{ btn.disabled=false; btn.textContent='绑定'; }
@@ -912,6 +913,20 @@ async function search(){
   try{
     var r=await fetch(API+'/api/query?qqid='+encodeURIComponent(q));
     var d=await r.json();
+    if(!d.success && d.error==='该 QQ 号未绑定账号，请先绑定'){
+      var saved=localStorage.getItem('sb_bind_'+q);
+      if(saved){
+        try{
+          var bd=JSON.parse(saved);
+          var rr=await fetch(API+'/api/bind',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({qqid:q,platform:bd.platform,username:bd.username,password:bd.password})});
+          var rd=await rr.json();
+          if(rd.success){
+            r=await fetch(API+'/api/query?qqid='+encodeURIComponent(q));
+            d=await r.json();
+          }else{localStorage.removeItem('sb_bind_'+q)}
+        }catch(e){}
+      }
+    }
     if(!d.success){ rEl.innerHTML='<div class="empty"><div class="ic">&#128533;</div><p>'+esc(d.error)+'</p></div>'; hp('err'); return; }
     rEl.innerHTML = build(d.data, q);
   }catch(e){
