@@ -1108,26 +1108,24 @@ _iv.addEventListener('touchend',function(e){
 });
 </script>
 <script>
-// --- 粒子星空 (参考 Mineradio wallpaper + Three.js 银河效果) ---
+// --- 粒子星空 (Mineradio 风格适配浅色/深色双模) ---
 (function(){'use strict';
 var c=document.getElementById('bg'),x=c.getContext('2d');
-var W,H,dpr=1,run=true,stars=[],glow;
+var W,H,dpr=1,run=true,stars=[];
 function rs(s){return Math.abs(Math.sin(s*3187.917)*43758.5453)%1}
 function ac(){var s=getComputedStyle(document.documentElement);return(s.getPropertyValue('--accent-rgb')||'124,77,255').trim().split(',').map(Number)}
 function dark(){return document.documentElement.matches('[data-dark="true"]')||(!document.documentElement.getAttribute('data-dark')&&matchMedia('(prefers-color-scheme:dark)').matches)}
 
 function init(){
-  var a=ac(),cnt=Math.min(600,Math.max(280,Math.round(innerWidth*innerHeight/3200)));
-  stars=[];glow=[];var n=0;
-  // 银河核 — 螺旋星系中心密集
-  for(var i=0;i<cnt*.55;i++){
-    var ang2=rs(n*7.3)*Math.PI*2,d2=Math.pow(rs(n*11.7),.65)*Math.max(innerWidth,innerHeight)*.42;
-    stars.push({x:innerWidth*.5+Math.cos(ang2)*d2*.7,y:innerHeight*.42+Math.sin(ang2)*d2*.5,sz:.15+rs(n*23.7)*1.3,ph:rs(n*31.1)*Math.PI*2,sp:.4+rs(n*41.3)*.6,al:.45+rs(n*89.1)*.45,col:rs(n*67.7)>.55?'rgb('+a[0]+','+a[1]+','+a[2]+')':'rgba(255,255,255,.9)'});
+  var a=ac(),cnt=Math.min(550,Math.max(250,Math.round(innerWidth*innerHeight/3500)));
+  stars=[];var n=0;
+  for(var i=0;i<cnt*.5;i++){
+    var ang2=rs(n*7.3)*Math.PI*2,d2=Math.pow(rs(n*11.7),.65)*Math.max(innerWidth,innerHeight)*.38;
+    stars.push({x:innerWidth*.5+Math.cos(ang2)*d2*.65,y:innerHeight*.42+Math.sin(ang2)*d2*.45,sz:.2+rs(n*23.7)*.9,ph:rs(n*31.1)*Math.PI*2,sp:.4+rs(n*41.3)*.5,ly:rs(n*89.1)});
     n++;
   }
-  // 随机星场 — 全屏散布
-  for(var i=0;i<cnt*.45;i++){
-    stars.push({x:rs(n*13.1)*innerWidth,y:rs(n*29.3)*innerHeight,sz:.12+rs(n*23.7)*.8,ph:rs(n*31.1)*Math.PI*2,sp:.3+rs(n*41.3)*.5,al:.25+rs(n*89.1)*.5,col:rs(n*67.7)>.65?'rgba(255,255,255,.9)':'rgb('+a[0]+','+a[1]+','+a[2]+')'});
+  for(var i=0;i<cnt*.5;i++){
+    stars.push({x:rs(n*13.1)*innerWidth,y:rs(n*29.3)*innerHeight,sz:.15+rs(n*23.7)*.6,ph:rs(n*31.1)*Math.PI*2,sp:.3+rs(n*41.3)*.4,ly:rs(n*89.1)});
     n++;
   }
 }
@@ -1137,42 +1135,35 @@ function resize(){
   c.width=W;c.height=H;c.style.width=innerWidth+'px';c.style.height=innerHeight+'px';
   x.setTransform(dpr,0,0,dpr,0,0);init()
 }
-
 function draw(t){
   if(!run){requestAnimationFrame(draw);return}
-  var n=t*.001,dk=dark(),sc=dk?1.4:1.3;
+  var n=t*.001,dk=dark(),a=ac();
   x.clearRect(0,0,innerWidth,innerHeight);
-  x.save();x.globalCompositeOperation='source-over';
-  // 深空底色 — 给星光提供深色底板 (浅色模式加厚)
-  var bg=x.createRadialGradient(innerWidth*.5,innerHeight*.42,0,innerWidth*.5,innerHeight*.42,Math.max(innerWidth,innerHeight)*.48);
-  var a=ac();
-  bg.addColorStop(0,dk?'rgba(8,10,20,.45)':'rgba(8,10,24,.55)');
-  bg.addColorStop(.3,dk?'rgba(6,8,18,.22)':'rgba(6,8,18,.35)');
-  bg.addColorStop(.7,'rgba(4,6,14,.08)');
-  bg.addColorStop(1,'rgba(0,0,0,0)');
-  x.fillStyle=bg;x.fillRect(0,0,innerWidth,innerHeight);
-
-  // 中心光晕 — 紫色银河核心
-  var grd=x.createRadialGradient(innerWidth*.5,innerHeight*.42,0,innerWidth*.5,innerHeight*.42,Math.max(innerWidth,innerHeight)*.36);
-  grd.addColorStop(0,'rgba('+a[0]+','+a[1]+','+a[2]+','+(dk?.10:.08)+')');
-  grd.addColorStop(.5,'rgba('+a[0]+','+a[1]+','+a[2]+','+(dk?.04:.035)+')');
-  grd.addColorStop(1,'rgba(0,0,0,0)');
-  x.fillStyle=grd;x.fillRect(0,0,innerWidth,innerHeight);
-
-  x.globalCompositeOperation='lighter'; // 叠加发光 — 只在深底色上有效
+  x.save();
+  if(dk){x.globalCompositeOperation='lighter';}else{x.globalCompositeOperation='source-over';}
   for(var i=0;i<stars.length;i++){
     var s=stars[i];
-    var tw=.3+.7*(.5+.5*Math.sin(n*s.sp+s.ph));
-    var al=.5+tw*s.al*.7*sc;
-    var sz=Math.max(.4,s.sz*tw);
-    // 外光晕
-    x.globalAlpha=al*.22;
-    x.fillStyle=s.col;
-    x.beginPath();x.arc(s.x,s.y,sz*3.5,0,Math.PI*2);x.fill();
-    // 核心亮点
-    x.globalAlpha=Math.min(1,al*.8);
-    x.fillStyle='rgba(255,255,255,.95)';
-    x.beginPath();x.arc(s.x,s.y,sz*.7,0,Math.PI*2);x.fill();
+    var tw=.35+.65*(.5+.5*Math.sin(n*s.sp+s.ph));
+    var sz=Math.max(.3,s.sz*tw);
+    var al=(.25+s.ly*.35)*tw;
+    if(sz<.25)continue;
+    if(dk){
+      // 深色模式 — lighter 叠加白色为主
+      x.globalAlpha=al*.35;
+      x.fillStyle='rgba('+a[0]+','+a[1]+','+a[2]+',.45)';
+      x.beginPath();x.arc(s.x,s.y,sz*3,0,Math.PI*2);x.fill();
+      x.globalAlpha=Math.min(1,al*.8);
+      x.fillStyle='rgba(255,255,255,.85)';
+      x.beginPath();x.arc(s.x,s.y,sz*.6,0,Math.PI*2);x.fill();
+    }else{
+      // 浅色模式 — 纯主题色粒子，直接 source-over
+      x.globalAlpha=al*.5;
+      x.fillStyle='rgba('+a[0]+','+a[1]+','+a[2]+',.32)';
+      x.beginPath();x.arc(s.x,s.y,sz*2.5,0,Math.PI*2);x.fill();
+      x.globalAlpha=Math.min(1,al);
+      x.fillStyle='rgb('+a[0]+','+a[1]+','+a[2]+')';
+      x.beginPath();x.arc(s.x,s.y,sz*.5,0,Math.PI*2);x.fill();
+    }
   }
   x.restore();
   requestAnimationFrame(draw)
