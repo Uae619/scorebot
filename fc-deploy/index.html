@@ -1117,15 +1117,15 @@ function ac(){var s=getComputedStyle(document.documentElement);return(s.getPrope
 function dark(){return document.documentElement.matches('[data-dark="true"]')||(!document.documentElement.getAttribute('data-dark')&&matchMedia('(prefers-color-scheme:dark)').matches)}
 
 function init(){
-  var a=ac(),cnt=Math.min(550,Math.max(250,Math.round(innerWidth*innerHeight/3500)));
+  var a=ac(),cnt=Math.min(350,Math.max(150,Math.round(innerWidth*innerHeight/5500)));
   stars=[];var n=0;
   for(var i=0;i<cnt*.5;i++){
     var ang2=rs(n*7.3)*Math.PI*2,d2=Math.pow(rs(n*11.7),.65)*Math.max(innerWidth,innerHeight)*.38;
-    stars.push({x:innerWidth*.5+Math.cos(ang2)*d2*.65,y:innerHeight*.42+Math.sin(ang2)*d2*.45,sz:.2+rs(n*23.7)*.9,ph:rs(n*31.1)*Math.PI*2,sp:.4+rs(n*41.3)*.5,ly:rs(n*89.1)});
+    stars.push({x:innerWidth*.5+Math.cos(ang2)*d2*.65,y:innerHeight*.42+Math.sin(ang2)*d2*.45,sz:.12+rs(n*23.7)*.45,ph:rs(n*31.1)*Math.PI*2,sp:.4+rs(n*41.3)*.5,ly:rs(n*89.1)});
     n++;
   }
   for(var i=0;i<cnt*.5;i++){
-    stars.push({x:rs(n*13.1)*innerWidth,y:rs(n*29.3)*innerHeight,sz:.15+rs(n*23.7)*.6,ph:rs(n*31.1)*Math.PI*2,sp:.3+rs(n*41.3)*.4,ly:rs(n*89.1)});
+    stars.push({x:rs(n*13.1)*innerWidth,y:rs(n*29.3)*innerHeight,sz:.08+rs(n*23.7)*.35,ph:rs(n*31.1)*Math.PI*2,sp:.3+rs(n*41.3)*.4,ly:rs(n*89.1)});
     n++;
   }
 }
@@ -1147,23 +1147,9 @@ function draw(t){
     var sz=Math.max(.3,s.sz*tw);
     var al=(.25+s.ly*.35)*tw;
     if(sz<.25)continue;
-    if(dk){
-      // 深色模式 — lighter 叠加白色为主
-      x.globalAlpha=al*.35;
-      x.fillStyle='rgba('+a[0]+','+a[1]+','+a[2]+',.45)';
-      x.beginPath();x.arc(s.x,s.y,sz*3,0,Math.PI*2);x.fill();
-      x.globalAlpha=Math.min(1,al*.8);
-      x.fillStyle='rgba(255,255,255,.85)';
-      x.beginPath();x.arc(s.x,s.y,sz*.6,0,Math.PI*2);x.fill();
-    }else{
-      // 浅色模式 — 纯主题色粒子，直接 source-over
-      x.globalAlpha=al*.5;
-      x.fillStyle='rgba('+a[0]+','+a[1]+','+a[2]+',.32)';
-      x.beginPath();x.arc(s.x,s.y,sz*2.5,0,Math.PI*2);x.fill();
-      x.globalAlpha=Math.min(1,al);
-      x.fillStyle='rgb('+a[0]+','+a[1]+','+a[2]+')';
-      x.beginPath();x.arc(s.x,s.y,sz*.5,0,Math.PI*2);x.fill();
-    }
+    x.globalAlpha=Math.min(1,al*(dk?.8:.7));
+    x.fillStyle=dk?'rgba(255,255,255,.85)':'rgb('+a[0]+','+a[1]+','+a[2]+')';
+    x.beginPath();x.arc(s.x,s.y,sz*.8,0,Math.PI*2);x.fill();
   }
   x.restore();
   requestAnimationFrame(draw)
