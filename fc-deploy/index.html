@@ -1133,8 +1133,8 @@ function draw(t){
   // 银河核心光晕
   var a=ac(),cx=innerWidth*.5,cy=innerHeight*.44;
   var g=x.createRadialGradient(cx,cy,0,cx,cy,Math.max(innerWidth,innerHeight)*.4);
-  g.addColorStop(0,'rgba('+a[0]+','+a[1]+','+a[2]+',.08)');
-  g.addColorStop(.3,'rgba('+a[0]+','+a[1]+','+a[2]+',.04)');
+  g.addColorStop(0,'rgba('+a[0]+','+a[1]+','+a[2]+',.09)');
+  g.addColorStop(.3,'rgba('+a[0]+','+a[1]+','+a[2]+',.05)');
   g.addColorStop(.7,'rgba('+a[0]+','+a[1]+','+a[2]+',.01)');
   g.addColorStop(1,'rgba(0,0,0,0)');
   x.fillStyle=g;x.fillRect(0,0,innerWidth,innerHeight);
@@ -1148,8 +1148,8 @@ function draw(t){
     var sz=Math.max(.3,s.sz*tw);
     var al=(.4+s.ly*.5)*tw;
     if(sz<.2)continue;
-    x.globalAlpha=Math.min(.55,al*.7);
-    x.fillStyle=sz>.4?'rgba(255,255,255,.55)':'rgba('+a[0]+','+a[1]+','+a[2]+',.4)';
+    x.globalAlpha=Math.min(.6,al*.75);
+    x.fillStyle=sz>.35?'rgba(255,255,255,.6)':'rgba('+a[0]+','+a[1]+','+a[2]+',.45)';
     x.beginPath();x.arc(s.x,s.y,sz,0,Math.PI*2);x.fill();
   }
   x.restore();
