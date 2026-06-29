@@ -171,6 +171,7 @@
     0%   { opacity:.5; transform:scale(1) translateY(0); }
     100% { opacity:1; transform:scale(1.04) translateY(-8px); }
   }
+  #bg { position:fixed; inset:0; z-index:0; pointer-events:none; width:100%; height:100%; }
   .app { width:100%; max-width:480px; min-height:100dvh; display:flex; flex-direction:column; position:relative; z-index:1; contain: layout style; }
 
   /* ---- HEADER ---- */
@@ -628,6 +629,7 @@
 </style>
 </head>
 <body>
+<canvas id="bg"></canvas>
 <div class="app">
   <div class="header" id="header">
     <h1>查分</h1>
@@ -1104,6 +1106,50 @@ _iv.addEventListener('touchend',function(e){
     }
   }
 });
+</script>
+<script>
+// --- WebGL 粒子背景 (参考 three.js PointsMaterial + Mineradio) ---
+(function(){'use strict';
+var c=document.getElementById('bg');
+var gl=c.getContext('webgl',{alpha:true,antialias:false})||c.getContext('experimental-webgl',{alpha:true,antialias:false});
+if(!gl){c.style.display='none';return}
+var VS='attribute vec2 p;attribute float s,a;varying float vAlpha;uniform float uTime,uDpr;void main(){vec2 pos=p;float t=uTime*.18;float rad=atan(pos.y,pos.x)+t*.25;float dist=length(pos);float wb=sin(t*1.3+dist*4.)*.008;pos*=1.+wb;pos.x+=cos(rad)*dist*.015;pos.y+=sin(rad)*dist*.015;gl_Position=vec4(pos,0,1);gl_PointSize=max(1.,s*uDpr);vAlpha=a*(.5+.5*sin(uTime*1.4+rad*5.+dist*3.));}';
+var FS='precision mediump float;varying float vAlpha;uniform vec3 uColor;void main(){float d=length(gl_PointCoord-.5)*2.;float a=1.-smoothstep(.15,.9,d);gl_FragColor=vec4(mix(uColor,vec3(1.),.35),a*vAlpha*.55);}';
+function mk(t,s){var h=gl.createShader(t);gl.shaderSource(h,s);gl.compileShader(h);return h}
+var pr=gl.createProgram();gl.attachShader(pr,mk(gl.VERTEX_SHADER,VS));gl.attachShader(pr,mk(gl.FRAGMENT_SHADER,FS));gl.linkProgram(pr);gl.useProgram(pr);
+var N=Math.min(500,Math.max(250,Math.round(innerWidth*innerHeight/3500)));
+var buf=gl.createBuffer(),data=new Float32Array(N*4);
+function accent(){var s=getComputedStyle(document.documentElement);var v=(s.getPropertyValue('--accent-rgb')||'124,77,255').trim().split(',').map(Number);return[v[0]/255,v[1]/255,v[2]/255]}
+function init(){
+  for(var i=0;i<N;i++){
+    var ang=Math.random()*Math.PI*2,r=.1+Math.pow(Math.random(),.55)*.82;
+    if(Math.random()<.35){r*=.15+Math.random()*.35;ang+=Math.random()*1.2}
+    data[i*4]=Math.cos(ang)*r;data[i*4+1]=Math.sin(ang)*r*Math.min(1,innerHeight/innerWidth);
+    data[i*4+2]=.3+Math.random()*2.8;data[i*4+3]=.15+Math.random()*.55;
+  }
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
+  gl.vertexAttribPointer(gl.getAttribLocation(pr,'p'),2,gl.FLOAT,false,16,0);gl.enableVertexAttribArray(gl.getAttribLocation(pr,'p'));
+  gl.vertexAttribPointer(gl.getAttribLocation(pr,'s'),1,gl.FLOAT,false,16,8);gl.enableVertexAttribArray(gl.getAttribLocation(pr,'s'));
+  gl.vertexAttribPointer(gl.getAttribLocation(pr,'a'),1,gl.FLOAT,false,16,12);gl.enableVertexAttribArray(gl.getAttribLocation(pr,'a'));
+}
+function resize(){
+  var dpr=Math.min(2,window.devicePixelRatio||1);
+  c.width=Math.round(innerWidth*dpr);c.height=Math.round(innerHeight*dpr);
+  c.style.width=innerWidth+'px';c.style.height=innerHeight+'px';
+  gl.viewport(0,0,c.width,c.height);gl.uniform1f(gl.getUniformLocation(pr,'uDpr'),dpr);
+}
+function draw(t){
+  gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.enable(gl.BLEND);
+  gl.uniform1f(gl.getUniformLocation(pr,'uTime'),t*.001);
+  var ac=accent();gl.uniform3f(gl.getUniformLocation(pr,'uColor'),ac[0],ac[1],ac[2]);
+  gl.drawArrays(gl.POINTS,0,N);
+  requestAnimationFrame(draw);
+}
+window.addEventListener('resize',resize);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)requestAnimationFrame(draw)});
+init();resize();requestAnimationFrame(draw);
+})();
 </script>
 </body>
 </html>
