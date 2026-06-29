@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	_ "embed"
 	"encoding/json"
@@ -947,9 +948,15 @@ func formatQTExamItems(exams []map[string]any) []apiExamItem {
 
 func handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
+	w.Header().Set("Cache-Control", "public, max-age=600")
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Vary", "Accept-Encoding")
+		gz := gzip.NewWriter(w)
+		gz.Write(indexHTML)
+		gz.Close()
+		return
+	}
 	w.Write(indexHTML)
 }
 

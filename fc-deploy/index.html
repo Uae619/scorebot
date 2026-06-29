@@ -171,7 +171,7 @@
     0%   { opacity:.5; transform:scale(1) translateY(0); }
     100% { opacity:1; transform:scale(1.04) translateY(-8px); }
   }
-  .app { width:100%; max-width:480px; min-height:100dvh; display:flex; flex-direction:column; position:relative; z-index:1; }
+  .app { width:100%; max-width:480px; min-height:100dvh; display:flex; flex-direction:column; position:relative; z-index:1; contain: layout style; }
 
   /* ---- HEADER ---- */
   .header {
@@ -185,7 +185,7 @@
   }
   .header.scrolled {
     background: rgba(255,255,255,0.55);
-    backdrop-filter: blur(28px) saturate(1.8); -webkit-backdrop-filter: blur(28px) saturate(1.8);
+    backdrop-filter: blur(10px) saturate(1.8); -webkit-backdrop-filter: blur(10px) saturate(1.8);
     border-bottom: 1px solid var(--glass-edge);
     box-shadow: 0 1px 0 var(--glass-inner-light) inset;
   }
@@ -201,7 +201,7 @@
     transition: all var(--dur-short) var(--hmos-standard);
     color: var(--text-secondary);
     box-shadow: var(--glass-depth-shadow), 0 1px 0 var(--glass-specular) inset;
-    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
   }
   .gear:active {
@@ -214,7 +214,7 @@
   .seg {
     display:flex; margin: clamp(6px,2vw,10px) 20px 0; padding:4px;
     background: var(--glass-bg-2); border-radius: var(--r-pill);
-    backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    backdrop-filter: blur(10px) saturate(1.4); -webkit-backdrop-filter: blur(10px) saturate(1.4);
     border: 1px solid var(--glass-border);
     box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 1px 0 var(--glass-inner-light) inset;
   }
@@ -244,7 +244,7 @@
 
   /* ---- SEARCH ---- */
   .search-wrap {
-    background: var(--glass-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     border-radius: 16px; padding:6px;
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-depth-shadow), 0 1px 0 var(--glass-inner-light) inset;
@@ -290,12 +290,13 @@
 
   /* ---- PROFILE CARD ---- */
   .card {
-    background: var(--glass-bg); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+    background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     border-radius: var(--r-card-md); padding:20px; margin-bottom:12px; position:relative;
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-depth-shadow);
     animation: cardUp var(--dur-complex) var(--hmos-emphasized) both;
     transition: transform var(--dur-short) var(--hmos-standard), box-shadow var(--dur-short) var(--hmos-standard);
+    content-visibility: auto; contain-intrinsic-size: auto 120px;
   }
   /* Liquid Glass — 卡片顶部折射高光 */
   .card::after {
@@ -313,7 +314,7 @@
 
   .info-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
   .info-cell {
-    background: var(--glass-bg-2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    background: var(--glass-bg-2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     border-radius: var(--r-btn); padding:12px; border: 1px solid var(--glass-border);
     transition: all var(--dur-micro) var(--hmos-standard);
   }
@@ -323,13 +324,14 @@
 
   /* ---- EXAM LIST ---- */
   .exam {
-    background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    background: var(--glass-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     border-radius: var(--r-card-sm); padding:15px; margin-bottom:8px;
     border: 1px solid var(--glass-border);
     box-shadow: 0 2px 24px rgba(var(--accent-rgb),0.05), 0 4px 8px rgba(0,0,0,0.03);
     cursor:pointer; display:flex; align-items:center; gap:14px;
     transition: all var(--dur-short) var(--hmos-standard);
     animation: cardUp var(--dur-complex) var(--hmos-emphasized) both;
+    content-visibility: auto; contain-intrinsic-size: auto 56px;
   }
   .exam:nth-child(1){animation-delay:.03s}
   .exam:nth-child(2){animation-delay:.07s}
@@ -356,7 +358,7 @@
 
   /* ---- EXAM DETAIL ---- */
   .detail {
-    background: rgba(255,255,255,0.58); backdrop-filter: blur(32px) saturate(1.6); -webkit-backdrop-filter: blur(32px) saturate(1.6);
+    background: rgba(255,255,255,0.58); backdrop-filter: blur(18px) saturate(1.6); -webkit-backdrop-filter: blur(18px) saturate(1.6);
     border-radius: var(--r-card-md); padding:22px; margin-top:10px; position:relative; overflow:hidden;
     border: 1px solid rgba(255,255,255,0.30);
     box-shadow: var(--glass-depth-raised), 0 1px 0 var(--glass-specular) inset;
@@ -435,14 +437,14 @@
   /* ---- SETTINGS SHEET ---- */
   .overlay {
     position:fixed; inset:0; z-index:100; display:none;
-    background: rgba(0,0,0,0.20); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    background: rgba(0,0,0,0.20); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     align-items:flex-end; justify-content:center;
   }
   .overlay.on { display:flex; animation: overlayOn var(--dur-short) var(--hmos-decelerate); }
   @keyframes overlayOn { from{opacity:0} to{opacity:1} }
   .sheet {
     width:100%; max-width:480px; position:relative; overflow:hidden;
-    background: var(--glass-bg); backdrop-filter: blur(36px) saturate(1.6); -webkit-backdrop-filter: blur(36px) saturate(1.6);
+    background: var(--glass-bg); backdrop-filter: blur(16px) saturate(1.6); -webkit-backdrop-filter: blur(16px) saturate(1.6);
     border-radius: var(--r-sheet); padding:4px 22px 26px;
     border: 1px solid var(--glass-border); border-bottom: none;
     box-shadow: 0 -4px 24px rgba(0,0,0,0.06), 0 -1px 0 rgba(var(--accent-rgb),0.04);
@@ -531,7 +533,7 @@
   /* ---- Custom Dropdown (HarmonyOS glass) ---- */
   .hmos-dropdown {
     position:absolute; top:100%; left:0; right:0; margin-top:6px;
-    background: rgba(255,255,255,0.88); backdrop-filter: blur(36px) saturate(1.6); -webkit-backdrop-filter: blur(36px) saturate(1.6);
+    background: rgba(255,255,255,0.88); backdrop-filter: blur(16px) saturate(1.6); -webkit-backdrop-filter: blur(16px) saturate(1.6);
     border-radius:14px; border:1px solid rgba(255,255,255,0.35);
     box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 0 rgba(255,255,255,0.25) inset;
     overflow:hidden; z-index:300; display:none;
@@ -583,7 +585,7 @@
   }
 
   /* ---- IMAGE VIEWER ---- */
-  #imgOverlay { background: rgba(0,0,0,0.30) !important; backdrop-filter: blur(16px) saturate(0.8) !important; -webkit-backdrop-filter: blur(16px) saturate(0.8) !important; }
+  #imgOverlay { background: rgba(0,0,0,0.30) !important; backdrop-filter: blur(10px) saturate(0.8) !important; -webkit-backdrop-filter: blur(10px) saturate(0.8) !important; }
 
   /* ---- TOAST ---- */
   .toast-fixed {
@@ -592,20 +594,20 @@
     padding:10px 20px; border-radius: var(--r-pill); font-size:13px; font-weight:600;
     transition:transform .42s cubic-bezier(0.22, 0.9, 0.3, 1.1); pointer-events:none;
     background: rgba(255,255,255,0.72); color: var(--text-primary);
-    backdrop-filter: blur(28px) saturate(1.6); -webkit-backdrop-filter: blur(28px) saturate(1.6);
+    backdrop-filter: blur(10px) saturate(1.6); -webkit-backdrop-filter: blur(10px) saturate(1.6);
     border:1px solid rgba(255,255,255,0.35);
     box-shadow: var(--glass-depth-raised), 0 1px 0 var(--glass-specular) inset;
   }
   .toast-fixed.on  { transform:translateX(-50%) translateY(0); }
   .toast-fixed.ok  {
     background: rgba(16,185,129,0.82); color:#fff;
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     border:1px solid rgba(255,255,255,0.30);
     box-shadow: 0 4px 20px rgba(16,185,129,0.15), 0 1px 0 rgba(255,255,255,0.20) inset;
   }
   .toast-fixed.err {
     background: rgba(239,68,68,0.82); color:#fff;
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     border:1px solid rgba(255,255,255,0.25);
     box-shadow: 0 4px 20px rgba(239,68,68,0.15), 0 1px 0 rgba(255,255,255,0.18) inset;
   }
