@@ -1120,20 +1120,18 @@ function chk(){
 }
 
 function init(){
-  var cnt=Math.min(500,Math.max(250,Math.round(innerWidth*innerHeight/3400)));
+  var cnt=Math.min(550,Math.max(300,Math.round(innerWidth*innerHeight/2800)));
   stars=[];var n=0;
-  // 银河核心 — 螺旋臂密集区
-  for(var i=0;i<cnt*.6;i++){
-    var ang=rs(n*7.3)*Math.PI*2,dist=Math.pow(rs(n*11.7),.55)*Math.max(innerWidth,innerHeight)*.38;
+  for(var i=0;i<cnt*.55;i++){
+    var ang=rs(n*7.3)*Math.PI*2,dist=Math.pow(rs(n*11.7),.5)*Math.max(innerWidth,innerHeight)*.4;
     var bx=innerWidth*.5+Math.cos(ang+dist*.004)*dist*.7;
     var by=innerHeight*.44+Math.sin(ang+dist*.004)*dist*.45;
-    stars.push({bx:bx,by:by,x:bx,y:by,sz:.2+rs(n*23.7)*.8,ph:rs(n*31.1)*Math.PI*2,sp:.5+rs(n*41.3)*.6,ly:rs(n*89.1),dr:rs(n*55.3)*Math.PI*2,ds:.06+rs(n*61.7)*.15});
+    stars.push({bx:bx,by:by,x:bx,y:by,sz:.3+rs(n*23.7)*1.2,ph:rs(n*31.1)*Math.PI*2,sp:.5+rs(n*41.3)*.6,ly:rs(n*89.1),dr:rs(n*55.3)*Math.PI*2,ds:.08+rs(n*61.7)*.2});
     n++;
   }
-  // 外围星场
-  for(var i=0;i<cnt*.4;i++){
+  for(var i=0;i<cnt*.45;i++){
     var bx=rs(n*13.1)*innerWidth,by=rs(n*29.3)*innerHeight;
-    stars.push({bx:bx,by:by,x:bx,y:by,sz:.1+rs(n*23.7)*.5,ph:rs(n*31.1)*Math.PI*2,sp:.4+rs(n*41.3)*.4,ly:rs(n*89.1),dr:rs(n*55.3)*Math.PI*2,ds:.04+rs(n*61.7)*.1});
+    stars.push({bx:bx,by:by,x:bx,y:by,sz:.15+rs(n*23.7)*.7,ph:rs(n*31.1)*Math.PI*2,sp:.4+rs(n*41.3)*.4,ly:rs(n*89.1),dr:rs(n*55.3)*Math.PI*2,ds:.06+rs(n*61.7)*.14});
     n++;
   }
 }
@@ -1151,9 +1149,10 @@ function draw(t){
   x.save();
   // 银河核心光晕
   var a=ac(),cx=innerWidth*.5,cy=innerHeight*.44;
-  var g=x.createRadialGradient(cx,cy,0,cx,cy,Math.max(innerWidth,innerHeight)*.35);
-  g.addColorStop(0,'rgba('+a[0]+','+a[1]+','+a[2]+',.08)');
-  g.addColorStop(.4,'rgba('+a[0]+','+a[1]+','+a[2]+',.03)');
+  var g=x.createRadialGradient(cx,cy,0,cx,cy,Math.max(innerWidth,innerHeight)*.4);
+  g.addColorStop(0,'rgba('+a[0]+','+a[1]+','+a[2]+',.18)');
+  g.addColorStop(.3,'rgba('+a[0]+','+a[1]+','+a[2]+',.08)');
+  g.addColorStop(.7,'rgba('+a[0]+','+a[1]+','+a[2]+',.02)');
   g.addColorStop(1,'rgba(0,0,0,0)');
   x.fillStyle=g;x.fillRect(0,0,innerWidth,innerHeight);
 
@@ -1164,10 +1163,10 @@ function draw(t){
     s.y=s.by+Math.sin(n*s.dr*1.3)*s.ds*16;
     var tw=.3+.7*(.5+.5*Math.sin(n*s.sp+s.ph));
     var sz=Math.max(.3,s.sz*tw);
-    var al=(.3+s.ly*.5)*tw;
+    var al=(.4+s.ly*.5)*tw;
     if(sz<.2)continue;
-    x.globalAlpha=Math.min(.75,al*.6);
-    x.fillStyle=sz>.8?'rgba(255,255,255,.75)':'rgba('+a[0]+','+a[1]+','+a[2]+',.5)';
+    x.globalAlpha=Math.min(1,al);
+    x.fillStyle=sz>.8?'rgba(255,255,255,.9)':'rgba('+a[0]+','+a[1]+','+a[2]+',.7)';
     x.beginPath();x.arc(s.x,s.y,sz,0,Math.PI*2);x.fill();
   }
   x.restore();
