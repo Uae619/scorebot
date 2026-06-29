@@ -1117,10 +1117,10 @@ function init(){
     stars.push({bx:bx,by:by,x:bx,y:by,sz:.1+rs(n*23.7)*.4,ph:rs(n*31.1)*Math.PI*2,sp:.4+rs(n*41.3)*.4,ly:rs(n*89.1),dr:rs(n*55.3)*Math.PI*2,ds:.04+rs(n*61.7)*.08});
     n++;
   }
-  // 页面上方补充
-  var topN=Math.round(cnt*.12);
+  // 页面上方补充 — 输入框/Header 区域
+  var topN=Math.round(cnt*.18);
   for(var i=0;i<topN;i++){
-    var bx=rs(n*13.1)*innerWidth,by=rs(n*29.3)*innerHeight*.25;
+    var bx=rs(n*13.1)*innerWidth,by=rs(n*29.3)*innerHeight*.18;
     stars.push({bx:bx,by:by,x:bx,y:by,sz:.1+rs(n*23.7)*.4,ph:rs(n*31.1)*Math.PI*2,sp:.4+rs(n*41.3)*.4,ly:rs(n*89.1),dr:rs(n*55.3)*Math.PI*2,ds:.04+rs(n*61.7)*.08});
     n++;
   }
