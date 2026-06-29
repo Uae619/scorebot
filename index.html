@@ -717,6 +717,8 @@ var vib = JSON.parse(localStorage.getItem('sb_vib')||'true');
 var vibBtn = document.getElementById('vibBtn');
 function uv(){ vibBtn.className='tgl'+(vib?' on':''); }
 uv();
+var _savedQ = localStorage.getItem('sb_qq');
+if(_savedQ) document.getElementById('qq').value = _savedQ;
 function togVib(){ vib=!vib; localStorage.setItem('sb_vib',JSON.stringify(vib)); uv(); if(vib) hp('light'); }
 function hp(t){
   if(!vib) return;
@@ -928,6 +930,7 @@ async function search(){
       }
     }
     if(!d.success){ rEl.innerHTML='<div class="empty"><div class="ic">&#128533;</div><p>'+esc(d.error)+'</p></div>'; hp('err'); return; }
+    localStorage.setItem('sb_qq', q);
     rEl.innerHTML = build(d.data, q);
   }catch(e){
     rEl.innerHTML='<div class="empty"><div class="ic">&#9888;</div><p>'+esc(e.message||e)+'</p></div>';
