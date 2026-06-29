@@ -1140,21 +1140,22 @@ function resize(){
 
 function draw(t){
   if(!run){requestAnimationFrame(draw);return}
-  var n=t*.001,dk=dark(),sc=dk?1.4:1;
+  var n=t*.001,dk=dark(),sc=dk?1.4:1.3;
   x.clearRect(0,0,innerWidth,innerHeight);
   x.save();x.globalCompositeOperation='source-over';
-  // 深空底色 — 给星光提供深色底板
-  var bg=x.createRadialGradient(innerWidth*.5,innerHeight*.42,0,innerWidth*.5,innerHeight*.42,Math.max(innerWidth,innerHeight)*.5);
+  // 深空底色 — 给星光提供深色底板 (浅色模式加厚)
+  var bg=x.createRadialGradient(innerWidth*.5,innerHeight*.42,0,innerWidth*.5,innerHeight*.42,Math.max(innerWidth,innerHeight)*.48);
   var a=ac();
-  bg.addColorStop(0,dk?'rgba(8,10,20,.45)':'rgba(8,10,24,.28)');
-  bg.addColorStop(.5,'rgba(6,8,18,.18)');
+  bg.addColorStop(0,dk?'rgba(8,10,20,.45)':'rgba(8,10,24,.55)');
+  bg.addColorStop(.3,dk?'rgba(6,8,18,.22)':'rgba(6,8,18,.35)');
+  bg.addColorStop(.7,'rgba(4,6,14,.08)');
   bg.addColorStop(1,'rgba(0,0,0,0)');
   x.fillStyle=bg;x.fillRect(0,0,innerWidth,innerHeight);
 
   // 中心光晕 — 紫色银河核心
-  var grd=x.createRadialGradient(innerWidth*.5,innerHeight*.42,0,innerWidth*.5,innerHeight*.42,Math.max(innerWidth,innerHeight)*.4);
-  grd.addColorStop(0,'rgba('+a[0]+','+a[1]+','+a[2]+','+(dk?.10:.06)+')');
-  grd.addColorStop(.5,'rgba('+a[0]+','+a[1]+','+a[2]+','+(dk?.04:.025)+')');
+  var grd=x.createRadialGradient(innerWidth*.5,innerHeight*.42,0,innerWidth*.5,innerHeight*.42,Math.max(innerWidth,innerHeight)*.36);
+  grd.addColorStop(0,'rgba('+a[0]+','+a[1]+','+a[2]+','+(dk?.10:.08)+')');
+  grd.addColorStop(.5,'rgba('+a[0]+','+a[1]+','+a[2]+','+(dk?.04:.035)+')');
   grd.addColorStop(1,'rgba(0,0,0,0)');
   x.fillStyle=grd;x.fillRect(0,0,innerWidth,innerHeight);
 
