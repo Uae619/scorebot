@@ -939,13 +939,18 @@ function build(d,qqid){
 
 function drawGradePie(cid,userGrade,total){
   var c=document.getElementById(cid);if(!c)return;
-  var x=c.getContext('2d'),W=260,H=200,cx=80,cy=100,R=68,iR=42;
+  var dpr=Math.min(2,window.devicePixelRatio||1);
+  var sw=260,sh=200;
+  c.width=Math.round(sw*dpr);c.height=Math.round(sh*dpr);
+  c.style.width=sw+'px';c.style.height=sh+'px';
+  var x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
+  var cx=80,cy=100,R=68,iR=42;
   var dark=document.documentElement.matches('[data-dark="true"]')||(!document.documentElement.getAttribute('data-dark')&&matchMedia('(prefers-color-scheme:dark)').matches);
   var txt=dark?'#e5e7eb':'#1f2937',sub=dark?'#9ca3af':'#6b7280';
   var GP={A1:[0,1],A2:[1,3],A3:[3,6],A4:[6,10],A5:[10,15],B1:[15,21],B2:[21,28],B3:[28,36],B4:[36,43],B5:[43,50],C1:[50,56],C2:[56,64],C3:[64,71],C4:[71,78],C5:[78,84],D1:[84,89],D2:[89,93],D3:[93,96],D4:[96,98],D5:[98,99],E:[99,100]};
   var GC={A:'#22c55e',B:'#6366f1',C:'#f59e0b',D:'#ef4444',E:'#881337'};
   var GO=['A1','A2','A3','A4','A5','B1','B2','B3','B4','B5','C1','C2','C3','C4','C5','D1','D2','D3','D4','D5','E'];
-  x.clearRect(0,0,W,H);
+  x.clearRect(0,0,sw,sh);
   var t=0;
   for(var i=0;i<GO.length;i++){
     var g=GO[i],p=GP[g],pct=p[1]-p[0],a0=t,a1=t+pct*3.6;
@@ -954,7 +959,7 @@ function drawGradePie(cid,userGrade,total){
     x.beginPath();
     var rad0=(a0-90)*Math.PI/180,rad1=(a1-90)*Math.PI/180;
     x.arc(cx,cy,R,rad0,rad1);x.arc(cx,cy,iR,rad1,rad0,true);x.closePath();
-    x.fillStyle=col;x.globalAlpha=isUser?1:.22;x.fill();
+    x.fillStyle=col;x.globalAlpha=isUser?1:.34;x.fill();
     x.globalAlpha=1;
     if(isUser){
       var lx=cx+Math.cos((rad0+rad1)/2)*(R+14);
@@ -975,6 +980,7 @@ function drawGradePie(cid,userGrade,total){
     x.fillStyle=sub;x.font='10px sans-serif';x.textAlign='left';x.textBaseline='top';
     x.fillText(bands[i][0]+'段 ('+(i===0?'优':i===1?'良':i===2?'中':i===3?'弱':'差')+')',lx+14,ly+i*18+1);
   }
+  x.setTransform(1,0,0,1,0,0);
 }
 
 async function det(qqid,eid,el){
@@ -1011,7 +1017,7 @@ function detHtml(d){
   }
   h+='</div>';
   if(d.grade&&d.totalStudents>0){
-    h+='<canvas id="pie-'+d.examId+'" width="260" height="200" style="width:100%;max-width:260px;height:auto;aspect-ratio:260/200;display:block;margin:10px auto 0;"></canvas>';
+    h+='<canvas id="pie-'+d.examId+'" width="260" height="200" style="width:260px;height:200px;display:block;margin:10px auto 0;"></canvas>';
     setTimeout(function(){drawGradePie('pie-'+d.examId,d.grade,d.totalStudents)},50);
   }
   if(d.subjects&&d.subjects.length>0){
