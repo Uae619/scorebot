@@ -971,30 +971,39 @@ function drawGradePie(cid,userGrade,total){
 
   x.clearRect(0,0,sw,sh);
 
-  // 绘制扇形（不动图层）
+  // 顺时针扫光展开 — 从 12 点方向扫到完整圆
+  var sweep=360*prog;
   var t=0;
   for(var i=0;i<GO.length;i++){
     var g=GO[i],p=GP[g],pct=p[1]-p[0];
-    var a0=t,a1=t+pct*3.6*prog;
+    var f0=t,f1=t+pct*3.6;
     var isUser=(g===userGrade),grp=g[0],col=GC[grp]||'#888';
     if(isUser) col='#f97316';
-    if(a1-a0<.01){t+=pct*3.6;continue;}
+    if(f0>=sweep){t=f1;continue;}
+    var a0=f0,a1=Math.min(f1,sweep);
+    if(a1-a0<.005){t=f1;continue;}
     x.beginPath();
     var rad0=(a0-90)*Math.PI/180,rad1=(a1-90)*Math.PI/180;
     x.arc(cx,cy,R,rad0,rad1);
-    x.arc(cx,cy,iR,rad1,rad0,true);
+    // 如果该段被截断，画闭合边
+    if(a1===sweep&&a1<f1){
+      var midRad=(a1-90)*Math.PI/180;
+      x.lineTo(cx+Math.cos(midRad)*iR,cy+Math.sin(midRad)*iR);
+    }else{
+      x.arc(cx,cy,iR,rad1,rad0,true);
+    }
     x.closePath();
     x.fillStyle=col;x.globalAlpha=isUser?1:.34;x.fill();
-    // 消除段间缝隙 — 同色细描边
     x.strokeStyle=col;x.lineWidth=.8;x.globalAlpha=isUser?1:.34;x.stroke();
     x.globalAlpha=1;
     if(isUser&&prog>.95){
-      var lx=cx+Math.cos((rad0+rad1)/2)*(R+14);
-      var ly=cy+Math.sin((rad0+rad1)/2)*(R+14);
+      var mid=(f0+f1)/2,lmRad=(mid-90)*Math.PI/180;
+      var lx=cx+Math.cos(lmRad)*(R+14);
+      var ly=cy+Math.sin(lmRad)*(R+14);
       x.fillStyle='#f97316';x.font='bold 8px sans-serif';x.textAlign='center';
       x.fillText(g,lx,ly);
     }
-    t+=pct*3.6;
+    t=f1;
   }
 
   // 中心文字（动画进度>80%时淡入）
