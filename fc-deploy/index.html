@@ -960,9 +960,10 @@ function drawGradePie(cid,userGrade,total){
   // 动画状态
   var k='pie_anim_'+cid;
   if(!window._pieAnims)window._pieAnims={};
+  if(!window._pieAnims[k])window._pieAnims[k]={start:0};
   var st=window._pieAnims[k];
   if(!c.dataset.pieStarted){c.dataset.pieStarted='1';st.start=performance.now();}
-  var elapsed=performance.now()-(st.start||0);
+  var elapsed=performance.now()-st.start;
   var dur=800; // 动画时长 ms
   var prog=Math.min(1,elapsed/dur);
   // easeOutCubic
