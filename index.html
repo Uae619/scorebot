@@ -681,16 +681,6 @@
         <div id="weak-section"></div>
         <div id="strong-section" style="margin-top:10px;"></div>
       </div>
-      <div class="card" style="padding:16px;margin-top:8px;" id="leaderboard-card">
-        <p style="font-size:12px;color:var(--text-tertiary);margin-bottom:8px;">班级排行榜</p>
-        <p style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">与同学匿名比拼成绩</p>
-        <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <input id="classCodeInput" type="text" placeholder="输入6位班级码" maxlength="6" inputmode="numeric" style="flex:1;padding:9px;border:1px solid var(--hairline-solid);border-radius:10px;background:var(--glass-bg-2);color:var(--text-primary);font-size:14px;">
-          <button onclick="joinLeaderboard()" style="padding:9px 14px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent-from),var(--accent-to));color:#fff;font-size:13px;font-weight:600;">加入</button>
-        </div>
-        <button onclick="createLeaderboard()" style="width:100%;padding:8px;border:1px dashed var(--hairline-solid);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:12px;cursor:pointer;">+ 创建新班级码</button>
-        <div id="lb-res" style="margin-top:10px;"></div>
-      </div>
     </div>
   </div>
 
@@ -718,10 +708,13 @@
 
 <div class="overlay" id="modal" onclick="closeSettings(event)">
   <div class="sheet" onclick="event.stopPropagation()">
-    <h2>设置</h2>
-    <div class="srow2"><div><div class="sl">触感反馈</div><div class="sd">点击按钮时手机轻微震动</div></div><button class="tgl" id="vibBtn" onclick="togVib()"></button></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <h2 style="margin:0;">设置</h2>
+      <button onclick="closeSettingsDirect()" style="background:none;border:none;font-size:20px;color:var(--text-secondary);cursor:pointer;padding:4px 8px;line-height:1;">&#10005;</button>
+    </div>
+    <div class="srow2" style="padding:10px 0;"><div><div class="sl">触感反馈</div><div class="sd">点击按钮时手机轻微震动</div></div><button class="tgl" id="vibBtn" onclick="togVib()"></button></div>
 
-    <div class="srow2"><div><div class="sl">主题颜色</div><div class="sd">切换界面强调色</div></div>
+    <div class="srow2" style="padding:10px 0;"><div><div class="sl">主题颜色</div><div class="sd">切换界面强调色</div></div>
       <div class="color-swatches">
         <span class="color-dot purple active" data-theme="purple" onclick="setTheme('purple',this)"></span>
         <span class="color-dot blue" data-theme="blue" onclick="setTheme('blue',this)"></span>
@@ -732,17 +725,34 @@
       </div>
     </div>
 
-    <div class="srow2"><div><div class="sl">暗色模式</div><div class="sd">切换深色/浅色外观</div></div><button class="tgl" id="darkBtn" onclick="togDark()"></button></div>
+    <div class="srow2" style="padding:10px 0;"><div><div class="sl">暗色模式</div><div class="sd">切换深色/浅色外观</div></div><button class="tgl" id="darkBtn" onclick="togDark()"></button></div>
 
-    <div class="srow2" onclick="egg()" style="cursor:pointer;"><div><div class="sl">彩蛋</div><div class="sd">点开有惊喜</div></div><span style="color:var(--text-tertiary);">&#127855;</span></div>
+    <div class="srow2" style="padding:10px 0;"><div><div class="sl">目标分数</div><div class="sd">设定考试目标</div></div><input id="goalScore" type="number" placeholder="0" onchange="saveGoals()" style="width:72px;text-align:right;border:1px solid var(--hairline-solid);border-radius:8px;padding:4px 8px;font-size:13px;background:var(--glass-bg-2);color:var(--text-primary);"></div>
+    <div class="srow2" style="padding:10px 0;"><div><div class="sl">目标排名</div></div><input id="goalRank" type="number" placeholder="0" onchange="saveGoals()" style="width:72px;text-align:right;border:1px solid var(--hairline-solid);border-radius:8px;padding:4px 8px;font-size:13px;background:var(--glass-bg-2);color:var(--text-primary);"></div>
+
+    <div class="srow2" style="padding:10px 0;"><div><div class="sl">AI API 密钥</div><div class="sd">接入 AI 模型提供学习建议</div></div><input id="aiKey" type="password" placeholder="sk-..." onchange="saveAIKey()" style="width:100%;max-width:180px;border:1px solid var(--hairline-solid);border-radius:8px;padding:4px 8px;font-size:12px;background:var(--glass-bg-2);color:var(--text-primary);"></div>
+    <div class="srow2" style="padding:10px 0;"><div><div class="sl">AI 模型</div></div>
+      <select id="aiModel" onchange="saveAIKey()" style="border:1px solid var(--hairline-solid);border-radius:8px;padding:4px 8px;font-size:12px;background:var(--glass-bg-2);color:var(--text-primary);">
+        <option value="">规则引擎(免费)</option>
+        <option value="deepseek">DeepSeek-V3</option>
+        <option value="qwen">通义千问(Qwen)</option>
+        <option value="gpt">GPT-4o</option>
+        <option value="claude">Claude 4 Sonnet</option>
+        <option value="custom">自定义 API</option>
+      </select>
+    </div>
+    <div id="aiCustomRow" style="display:none;padding:6px 0;">
+      <input id="aiCustomURL" type="text" placeholder="https://api.example.com/v1/chat/completions" onchange="saveAIKey()" style="width:100%;border:1px solid var(--hairline-solid);border-radius:8px;padding:4px 8px;font-size:11px;background:var(--glass-bg-2);color:var(--text-primary);margin-bottom:4px;">
+      <input id="aiCustomModel" type="text" placeholder="模型名称 (如 gpt-4o)" onchange="saveAIKey()" style="width:100%;border:1px solid var(--hairline-solid);border-radius:8px;padding:4px 8px;font-size:11px;background:var(--glass-bg-2);color:var(--text-primary);">
+    </div>
+
+    <div class="srow2" onclick="egg()" style="cursor:pointer;padding:10px 0;"><div><div class="sl">彩蛋</div><div class="sd">点开有惊喜</div></div></div>
     <div id="eggBox" style="display:none;text-align:center;padding:10px 0 6px;">
-      <img src="" id="eggGif" style="max-width:100%;max-height:220px;border-radius:16px;" alt="丑橘">
+      <img src="" id="eggGif" style="max-width:100%;max-height:160px;border-radius:16px;" alt="丑橘">
       <p style="color:var(--text-secondary);font-size:13px;font-weight:600;margin-top:6px;">丑橘…不丑…</p>
     </div>
-    <div class="srow2"><div><div class="sl">目标分数</div><div class="sd">设定考试目标</div></div><input id="goalScore" type="number" placeholder="0" onchange="saveGoals()" style="width:80px;text-align:right;border:1px solid var(--hairline-solid);border-radius:10px;padding:6px 10px;font-size:14px;background:var(--glass-bg-2);color:var(--text-primary);"></div>
-    <div class="srow2"><div><div class="sl">目标排名</div></div><input id="goalRank" type="number" placeholder="0" onchange="saveGoals()" style="width:80px;text-align:right;border:1px solid var(--hairline-solid);border-radius:10px;padding:6px 10px;font-size:14px;background:var(--glass-bg-2);color:var(--text-primary);"></div>
-    <div class="srow2"><div><div class="sl">版本</div><div class="sd">ScoreBot 3.0</div></div><span style="color:var(--text-tertiary);">3.0</span></div>
-    <div style="text-align:center;color:var(--text-tertiary);font-size:11px;padding:18px 0 4px;">免责声明：本工具仅用于个人学习成绩查询<br>数据来源于好分数/七天网络官方接口</div>
+    <div class="srow2" style="padding:10px 0;"><div><div class="sl">版本</div><div class="sd">ScoreBot 3.1</div></div><span style="color:var(--text-tertiary);">3.1</span></div>
+    <div style="text-align:center;color:var(--text-tertiary);font-size:11px;padding:12px 0 4px;">免责声明：本工具仅用于个人学习成绩查询<br>数据来源于好分数/七天网络官方接口</div>
   </div>
 </div>
 
@@ -1101,7 +1111,6 @@ async function det(qqid,eid,el){
     if(!d.success){ w.innerHTML='<p style="color:#dc2626;padding:8px;">'+esc(d.error)+'</p>'; return; }
     w.innerHTML = detHtml(d.data);
     saveExam(d.data);
-    submitLB(d.data);
   }catch(e){ w.innerHTML='<p style="color:#dc2626;padding:8px;">加载失败</p>'; }
 }
 
@@ -1205,9 +1214,10 @@ function saveExam(d){
   var exams=JSON.parse(localStorage.getItem('sb_exams')||'[]');
   var sub=d.subjects?d.subjects.map(function(s){return{name:s.name,score:s.score,fullScore:s.fullScore,grade:s.grade||''};}):[];
   var e={examId:d.examId,examName:d.examName,examTime:d.examTime,score:d.score,fuScore:d.fuScore,fullScore:d.fullScore,rankLow:d.rankLow,rankHigh:d.rankHigh,grade:d.grade,totalStudents:d.totalStudents,subjects:sub};
-  // 去重
-  for(var i=0;i<exams.length;i++){if(exams[i].examId===e.examId){exams.splice(i,1);break;}}
-  exams.unshift(e);
+  // 去重 — 原地更新不改变顺序
+  var found=false;
+  for(var i=0;i<exams.length;i++){if(exams[i].examId===e.examId){exams[i]=e;found=true;break;}}
+  if(!found)exams.unshift(e);
   if(exams.length>50)exams.length=50;
   localStorage.setItem('sb_exams',JSON.stringify(exams));
   setTimeout(updateStatusCard,100);
@@ -1260,9 +1270,6 @@ function renderStats(){
     }
     document.getElementById('weak-section').innerHTML=wh;
   }else{ac.hidden=true;}
-  // 排行榜
-  var cc=localStorage.getItem('sb_class_code');
-  if(cc){document.getElementById('classCodeInput').value=cc;fetchLB();}
 }
 
 function analyzeWeakSubjects(exams){
@@ -1297,14 +1304,14 @@ function drawTrendChart(exams){
   var dpr=Math.min(2,window.devicePixelRatio||1);
   var sw=360,sh=260;
   c.width=Math.round(sw*dpr);c.height=Math.round(sh*dpr);
-  c.style.width=sw+'px';c.style.height=sh+'px';
+  c.style.width='100%';c.style.maxWidth=sw+'px';c.style.height='auto';c.style.aspectRatio='360/260';
   var x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
   var dark=document.documentElement.matches('[data-dark="true"]')||(!document.documentElement.getAttribute('data-dark')&&matchMedia('(prefers-color-scheme:dark)').matches);
   var txt=dark?'#e5e7eb':'#374151',sub=dark?'#9ca3af':'#9ca3af',line=dark?'#a78bfa':'#7c3aed';
-  var pad={l:42,r:20,t:24,b:40},w=sw-pad.l-pad.r,h=sh-pad.t-pad.b;
-  // 数据点：按时间正序
-  var pts=[];for(var i=exams.length-1;i>=0;i--){var e=exams[i],sc=parseFloat(e.fuScore||e.score);if(sc>0)pts.push({d:e.examTime.substring(5)||'',s:sc,n:e.examName});}
-  if(pts.length<2)return;
+  var pad={l:44,r:16,t:20,b:40},w=sw-pad.l-pad.r,h=sh-pad.t-pad.b;
+  // 数据点：按时间正序（最旧→最新）
+  var pts=[];for(var i=exams.length-1;i>=0;i--){var e=exams[i],sc=parseFloat(e.fuScore||e.score);if(!isNaN(sc)&&sc>0){var dt=(e.examTime||'').substring(5)||'';pts.push({d:dt,s:sc,n:e.examName||''});}}
+  if(pts.length<2){return;}
   var minS=pts[0].s,maxS=pts[0].s;
   for(var i=1;i<pts.length;i++){if(pts[i].s<minS)minS=pts[i].s;if(pts[i].s>maxS)maxS=pts[i].s;}
   var padV=(maxS-minS)*.25||20;minS=Math.max(0,minS-padV);maxS=maxS+padV;
@@ -1362,51 +1369,22 @@ function drawTrendChart(exams){
   requestAnimationFrame(anim);
 }
 
-// ---- 排行榜 ----
-function createLeaderboard(){
-  var code=String(Math.floor(100000+Math.random()*900000));
-  localStorage.setItem('sb_class_code',code);
-  document.getElementById('classCodeInput').value=code;
-  fetchLB();
-  toast('班级码已生成: '+code+'，分享给同学即可','ok',4000);
-}
-function joinLeaderboard(){
-  var code=document.getElementById('classCodeInput').value.trim();
-  if(!/^\d{6}$/.test(code)){toast('请输入6位数字班级码','err',2000);return;}
-  localStorage.setItem('sb_class_code',code);
-  fetchLB();
-  toast('已加入班级 '+code,'ok',2000);
-}
-async function fetchLB(){
-  var code=localStorage.getItem('sb_class_code');
-  var qq=localStorage.getItem('sb_qq')||'0';
-  if(!code||!qq)return;
-  try{
-    var r=await fetch(API+'/api/leaderboard?qqid='+qq+'&code='+code);
-    var d=await r.json();
-    if(!d.success){document.getElementById('lb-res').innerHTML='<p style="color:var(--text-tertiary);font-size:12px;padding:8px;">暂无排行数据</p>';return;}
-    var h='';for(var i=0;i<d.data.entries.length;i++){
-      var e=d.data.entries[i],medal=e.rank===1?'&#129351;':e.rank===2?'&#129352;':e.rank===3?'&#129353;':'';
-      h+='<div class="lb-row'+(e.isYou?' lb-you':'')+'"><span class="lb-rank">'+medal+' '+e.rank+'</span><span class="lb-name">'+esc(e.label)+'</span><span class="lb-score">'+esc(e.score)+' 分</span></div>';
-    }
-    document.getElementById('lb-res').innerHTML=h;
-  }catch(e){}
-}
-async function submitLB(d){
-  var code=localStorage.getItem('sb_class_code');
-  var qq=localStorage.getItem('sb_qq')||'0';
-  if(!code||!qq)return;
-  var sub=d.subjects?d.subjects.map(function(s){return{name:s.name,score:s.score,fullScore:s.fullScore,grade:s.grade||''};}):[];
-  try{
-    await fetch(API+'/api/leaderboard/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({qqid:qq,classCode:code,examName:d.examName,score:d.fuScore||d.score,rank:d.rankLow||0,subjects:sub})});
-  }catch(e){}
-}
-
-// ---- 目标追踪 ----
+// ---- 设置 ----
+function closeSettingsDirect(){document.getElementById('modal').style.display='none';}
 function saveGoals(){
   localStorage.setItem('sb_goal_score',document.getElementById('goalScore').value||'0');
   localStorage.setItem('sb_goal_rank',document.getElementById('goalRank').value||'0');
 }
+function saveAIKey(){
+  localStorage.setItem('sb_ai_key',document.getElementById('aiKey').value||'');
+  localStorage.setItem('sb_ai_model',document.getElementById('aiModel').value||'');
+  localStorage.setItem('sb_ai_custom_url',document.getElementById('aiCustomURL').value||'');
+  localStorage.setItem('sb_ai_custom_model',document.getElementById('aiCustomModel').value||'');
+  var cr=document.getElementById('aiCustomRow');
+  cr.style.display=document.getElementById('aiModel').value==='custom'?'block':'none';
+}
+
+// ---- 目标追踪 ----
 
 // ---- AI 学习建议 ----
 function showAIAdvice(examId,btn){
@@ -1415,7 +1393,40 @@ function showAIAdvice(examId,btn){
   var exams=JSON.parse(localStorage.getItem('sb_exams')||'[]');
   var d=null;for(var i=0;i<exams.length;i++){if(exams[i].examId===examId){d=exams[i];break;}}
   if(!d)return;
-  var advice=generateAdvice(d);
+  btn.textContent='分析中...';btn.disabled=true;
+  getAdvice(d,function(advice){
+    btn.textContent='AI 分析';btn.disabled=false;
+    renderAdvice(btn,advice);
+  });
+}
+function renderAdvice(btn,advice){
+  var h='<div class="advice-wrap" style="margin-top:8px;">';
+  h+='<p style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">学习建议</p>';
+  for(var i=0;i<advice.length;i++)h+='<div class="advice-item" data-icon="'+(i+1)+'.">'+advice[i]+'</div>';
+  h+='</div>';btn.insertAdjacentHTML('afterend',h);
+}
+function getAdvice(d,cb){
+  var key=localStorage.getItem('sb_ai_key');
+  var model=localStorage.getItem('sb_ai_model');
+  if(!key||!model){cb(generateAdvice(d));return;}
+  var url='',payload={};
+  if(model==='deepseek'){url='https://api.deepseek.com/v1/chat/completions';payload={model:'deepseek-chat',messages:[{role:'system',content:'你是一位高中学习辅导专家。根据学生的考试成绩数据，给出简洁实用的学习建议。每次给3-5条建议，每条不超过30字。'},{role:'user',content:JSON.stringify(d)}],max_tokens:500};}
+  else if(model==='qwen'){url='https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';payload={model:'qwen-plus',messages:[{role:'system',content:'你是一位高中学习辅导专家。根据学生的考试成绩数据，给出简洁实用的学习建议。每次给3-5条建议，每条不超过30字。'},{role:'user',content:JSON.stringify(d)}],max_tokens:500};}
+  else if(model==='gpt'){url='https://api.openai.com/v1/chat/completions';payload={model:'gpt-4o',messages:[{role:'system',content:'你是一位高中学习辅导专家。根据学生的考试成绩数据，给出简洁实用的学习建议。每次给3-5条建议，每条不超过30字。'},{role:'user',content:JSON.stringify(d)}],max_tokens:500};}
+  else if(model==='claude'){url='https://api.anthropic.com/v1/messages';payload={model:'claude-sonnet-4-20250514',max_tokens:500,system:'你是一位高中学习辅导专家。根据学生的考试成绩数据，给出简洁实用的学习建议。每次给3-5条建议，每条不超过30字。',messages:[{role:'user',content:JSON.stringify(d)}]};}
+  else if(model==='custom'){url=localStorage.getItem('sb_ai_custom_url')||'';var cm=localStorage.getItem('sb_ai_custom_model')||'gpt-3.5-turbo';payload={model:cm,messages:[{role:'system',content:'你是一位高中学习辅导专家。根据学生的考试成绩数据，给出简洁实用的学习建议。每次给3-5条建议，每条不超过30字。'},{role:'user',content:JSON.stringify(d)}],max_tokens:500};}
+  if(!url){cb(generateAdvice(d));return;}
+  var headers={'Content-Type':'application/json'};
+  if(model==='claude'){headers['x-api-key']=key;headers['anthropic-version']='2023-06-01';}
+  else{headers['Authorization']='Bearer '+key;}
+  fetch(url,{method:'POST',headers:headers,body:JSON.stringify(payload)}).then(function(r){return r.json();}).then(function(j){
+    var txt='';
+    if(model==='claude'){txt=j.content&&j.content[0]?j.content[0].text:'';}
+    else{txt=j.choices&&j.choices[0]?j.choices[0].message.content:'';}
+    if(txt)cb(txt.split('\n').filter(function(l){return l.trim();}));
+    else cb(generateAdvice(d));
+  }).catch(function(){cb(generateAdvice(d));});
+}
   var h='<div class="advice-wrap" style="margin-top:8px;">';
   h+='<p style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">学习建议 (智能分析)</p>';
   for(var i=0;i<advice.length;i++)h+='<div class="advice-item" data-icon="'+(i+1)+'.">'+advice[i]+'</div>';
@@ -1444,9 +1455,14 @@ function generateAdvice(d){
 
 // ---- 初始化 ----
 (function initNew(){
-  // 恢复目标设置
   var gs=localStorage.getItem('sb_goal_score');if(gs&&gs!=='0')document.getElementById('goalScore').value=gs;
   var gr=localStorage.getItem('sb_goal_rank');if(gr&&gr!=='0')document.getElementById('goalRank').value=gr;
+  var ak=localStorage.getItem('sb_ai_key');if(ak)document.getElementById('aiKey').value=ak;
+  var am=localStorage.getItem('sb_ai_model');if(am)document.getElementById('aiModel').value=am;
+  var au=localStorage.getItem('sb_ai_custom_url');if(au)document.getElementById('aiCustomURL').value=au;
+  var acm=localStorage.getItem('sb_ai_custom_model');if(acm)document.getElementById('aiCustomModel').value=acm;
+  if(am==='custom')document.getElementById('aiCustomRow').style.display='block';
+  document.getElementById('aiModel').addEventListener('change',function(){document.getElementById('aiCustomRow').style.display=this.value==='custom'?'block':'none';});
 })();
 
 </script>
