@@ -949,7 +949,7 @@ function drawGradePie(cid,userGrade,total){
   c.width=Math.round(sw*dpr);c.height=Math.round(sh*dpr);
   c.style.width=sw+'px';c.style.height=sh+'px';
   var x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
-  var cx=80,cy=100,R=68,iR=42;
+  var cx=90,cy=100,R=64,iR=40;
   var dark=document.documentElement.matches('[data-dark="true"]')||(!document.documentElement.getAttribute('data-dark')&&matchMedia('(prefers-color-scheme:dark)').matches);
   var txt=dark?'#e5e7eb':'#1f2937',sub=dark?'#9ca3af':'#6b7280';
   var GP={A1:[0,1],A2:[1,3],A3:[3,6],A4:[6,10],A5:[10,15],B1:[15,21],B2:[21,28],B3:[28,36],B4:[36,43],B5:[43,50],C1:[50,56],C2:[56,64],C3:[64,71],C4:[71,78],C5:[78,84],D1:[84,89],D2:[89,93],D3:[93,96],D4:[96,98],D5:[98,99],E:[99,100]};
@@ -1020,7 +1020,7 @@ function drawGradePie(cid,userGrade,total){
   // 图例（动画完成时淡入）
   if(prog>.85){
     var la=Math.min(1,(prog-.85)/.15);
-    var lx=148,ly=20;
+    var lx=160,ly=20;
     for(var i=0;i<bands.length;i++){
       x.globalAlpha=la;x.fillStyle=bands[i][1];
       x.fillRect(lx,ly+i*18,10,10);
