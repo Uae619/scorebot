@@ -150,7 +150,7 @@
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html { height:100%; }
   body {
-    font-family: "HarmonyOS Sans", "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
     min-height: 100dvh; color: var(--text-primary);
     display: flex; justify-content: center;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
@@ -1440,7 +1440,8 @@ function generateAdvice(d){
 
 </script>
 <script>
-// --- 银河粒子 (深色模式专属) ---
+// --- 银河粒子 (深色模式专属，延迟加载) ---
+setTimeout(function(){
 (function(){'use strict';
 var c=document.getElementById('bg'),x=c.getContext('2d');
 var W,H,dpr=1,run=true,stars=[],visible=false;
@@ -1505,7 +1506,7 @@ matchMedia('(prefers-color-scheme:dark)').addEventListener('change',chk);
 window.addEventListener('resize',resize);
 document.addEventListener('visibilitychange',function(){run=!document.hidden;if(run)requestAnimationFrame(draw)});
 resize();requestAnimationFrame(draw);
-})();
+})();}, 400);
 </script>
 </body>
 </html>
