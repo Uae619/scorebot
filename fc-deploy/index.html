@@ -5,10 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0A0E1A">
 <meta name="color-scheme" content="dark light">
-<script>// 防闪白 — CSS 加载前立即应用暗色模式
-(function(){var d=localStorage.getItem('sb_dark');if(d==='true'||(d!=='false'&&matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.setAttribute('data-dark','true');document.documentElement.style.background='#111827';}})();
+<script>// 防闪 — CSS 加载前立即同步暗色模式和主题色
+(function(){var d=localStorage.getItem('sb_dark'),t=localStorage.getItem('sb_theme');if(t)document.documentElement.setAttribute('data-theme',t);if(d==='true'||(d!=='false'&&matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.setAttribute('data-dark','true');}})();
 </script>
-<style>html[data-dark="true"],html[data-dark="true"] body{background:#111827!important}</style>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="查分">
 <link rel="manifest" href="/manifest.json">
