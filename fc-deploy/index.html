@@ -150,7 +150,7 @@
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html { height:100%; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-family: "HarmonyOS Sans", "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
     min-height: 100dvh; color: var(--text-primary);
     display: flex; justify-content: center;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
@@ -1388,7 +1388,11 @@ function showAIAdvice(examId,btn){
 function renderAdvice(btn,advice){
   var h='<div class="advice-wrap" style="margin-top:8px;">';
   h+='<p style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">学习建议</p>';
-  for(var i=0;i<advice.length;i++)h+='<div class="advice-item" data-icon="'+(i+1)+'.">'+advice[i]+'</div>';
+  for(var i=0;i<advice.length;i++){
+    var t=advice[i].replace(/^\d+[\.\、\)]\s*/,'');
+    var n=/^\d/.test(advice[i])?'':(i+1)+'.';
+    h+='<div class="advice-item" data-icon="'+n+'">'+t+'</div>';
+  }
   h+='</div>';btn.insertAdjacentHTML('afterend',h);
 }
 function getAdvice(d,cb){
