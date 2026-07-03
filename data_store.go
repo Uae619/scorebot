@@ -36,6 +36,18 @@ type DataStore interface {
 
 	ViewQTTeacherOverallCache(school, examRuCode, examGuid, ruleGuid string) string
 	WriteQTTeacherOverallCache(school, examRuCode, examGuid, ruleGuid, payload string, ttl time.Duration)
+
+	SubmitLeaderboard(classCode string, entry LeaderboardEntry)
+	ViewLeaderboard(classCode string) []LeaderboardEntry
+}
+
+type LeaderboardEntry struct {
+	QQID      string       `json:"qqid"`
+	ExamName  string       `json:"examName"`
+	Score     string       `json:"score"`
+	Rank      int          `json:"rank"`
+	Subjects  []apiSubject `json:"subjects"`
+	UpdatedAt time.Time    `json:"updatedAt"`
 }
 
 type MySQLStore struct{}

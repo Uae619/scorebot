@@ -15,6 +15,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -946,6 +947,117 @@ func formatQTExamItems(exams []map[string]any) []apiExamItem {
 
 // ---------- static ----------
 
+// ---------- POST /api/leaderboard/submit ----------
+
+type leaderboardSubmitReq struct {
+	QQID      string       `json:"qqid"`
+	ClassCode string       `json:"classCode"`
+	ExamName  string       `json:"examName"`
+	Score     string       `json:"score"`
+	Rank      int          `json:"rank"`
+	Subjects  []apiSubject `json:"subjects"`
+}
+
+func handleLeaderboardSubmit(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, apiResponse{Success: false, Error: "仅支持 POST"})
+		return
+	}
+	var req leaderboardSubmitReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "请求格式错误"})
+		return
+	}
+	if req.QQID == "" || req.ClassCode == "" {
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "缺少 qqid 或 classCode"})
+		return
+	}
+	if len(req.ClassCode) != 6 {
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "班级码为6位数字"})
+		return
+	}
+	dataStore.SubmitLeaderboard(req.ClassCode, LeaderboardEntry{
+		QQID:      req.QQID,
+		ExamName:  req.ExamName,
+		Score:     req.Score,
+		Rank:      req.Rank,
+		Subjects:  req.Subjects,
+		UpdatedAt: time.Now(),
+	})
+	writeJSON(w, http.StatusOK, apiResponse{Success: true})
+}
+
+// ---------- GET /api/leaderboard ----------
+
+func handleLeaderboardView(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	qqid := strings.TrimSpace(r.URL.Query().Get("qqid"))
+	code := strings.TrimSpace(r.URL.Query().Get("code"))
+	if qqid == "" || code == "" {
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "缺少 qqid 或 code"})
+		return
+	}
+	entries := dataStore.ViewLeaderboard(code)
+	if len(entries) == 0 {
+		writeJSON(w, http.StatusOK, apiResponse{Success: true, Data: map[string]any{"entries": []any{}}})
+		return
+	}
+	// sort by score desc
+	sort.Slice(entries, func(i, j int) bool { return entries[i].Score > entries[j].Score })
+	// build qqid→index for consistent pseudonyms
+	qqids := make([]string, 0, len(entries))
+	for _, e := range entries {
+		qqids = append(qqids, e.QQID)
+	}
+	sort.Strings(qqids)
+	pseudonym := make(map[string]string)
+	for i, q := range qqids {
+		pseudonym[q] = fmt.Sprintf("神秘人%s", string(rune('A'+i%26)))
+		if i >= 26 {
+			pseudonym[q] = fmt.Sprintf("神秘人%s%s", string(rune('A'+(i/26-1)%26)), string(rune('A'+i%26)))
+		}
+	}
+
+	type lbEntry struct {
+		Rank    int          `json:"rank"`
+		Label   string       `json:"label"`
+		Score   string       `json:"score"`
+		IsYou   bool         `json:"isYou"`
+		ExamName string      `json:"examName"`
+		Subjects []apiSubject `json:"subjects"`
+	}
+	result := make([]lbEntry, 0, len(entries))
+	for i, e := range entries {
+		label := pseudonym[e.QQID]
+		if e.QQID == qqid {
+			label = "你"
+		}
+		result = append(result, lbEntry{
+			Rank:    i + 1,
+			Label:   label,
+			Score:   e.Score,
+			IsYou:   e.QQID == qqid,
+			ExamName: e.ExamName,
+			Subjects: e.Subjects,
+		})
+	}
+	writeJSON(w, http.StatusOK, apiResponse{Success: true, Data: map[string]any{"entries": result}})
+}
+
 func handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=600")
@@ -987,6 +1099,8 @@ func StartAPIServer(addr string) error {
 	mux.HandleFunc("/egg.gif", handleEgg)
 	mux.HandleFunc("/icon-192.png", handleIcon192)
 	mux.HandleFunc("/icon-512.png", handleIcon512)
+	mux.HandleFunc("/api/leaderboard/submit", handleLeaderboardSubmit)
+	mux.HandleFunc("/api/leaderboard", handleLeaderboardView)
 	mux.HandleFunc("/", handleIndex)
 
 	server := &http.Server{

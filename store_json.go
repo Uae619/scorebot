@@ -22,6 +22,7 @@ type jsonStoreData struct {
 	QTStudentExamCache map[string]jsonCacheEntry[[]map[string]any] `json:"qt_student_exam_cache"`
 	QTTeacherRuleCache map[string]jsonCacheEntry[qtTeacherRuleRef] `json:"qt_teacher_rule_cache"`
 	QTTeacherOverall   map[string]jsonCacheEntry[string]           `json:"qt_teacher_overall"`
+	Leaderboards       map[string][]LeaderboardEntry               `json:"leaderboards"`
 }
 
 type JSONStore struct {
@@ -319,4 +320,49 @@ func (s *JSONStore) WriteQTTeacherOverallCache(school, examRuCode, examGuid, rul
 	}
 	s.mu.Unlock()
 	s.save()
+}
+
+func (s *JSONStore) SubmitLeaderboard(classCode string, entry LeaderboardEntry) {
+	s.mu.Lock()
+	if s.data.Leaderboards == nil {
+		s.data.Leaderboards = make(map[string][]LeaderboardEntry)
+	}
+	entries := s.data.Leaderboards[classCode]
+	found := false
+	for i, e := range entries {
+		if e.QQID == entry.QQID {
+			entries[i] = entry
+			found = true
+			break
+		}
+	}
+	if !found {
+		entries = append(entries, entry)
+	}
+	cutoff := time.Now().Add(-7 * 24 * time.Hour)
+	filtered := entries[:0]
+	for _, e := range entries {
+		if e.UpdatedAt.After(cutoff) {
+			filtered = append(filtered, e)
+		}
+	}
+	s.data.Leaderboards[classCode] = filtered
+	s.mu.Unlock()
+	s.save()
+}
+
+func (s *JSONStore) ViewLeaderboard(classCode string) []LeaderboardEntry {
+	s.mu.RLock()
+	entries := s.data.Leaderboards[classCode]
+	s.mu.RUnlock()
+	result := make([]LeaderboardEntry, len(entries))
+	copy(result, entries)
+	for i := 0; i < len(result); i++ {
+		for j := i + 1; j < len(result); j++ {
+			if result[j].Score > result[i].Score {
+				result[i], result[j] = result[j], result[i]
+			}
+		}
+	}
+	return result
 }

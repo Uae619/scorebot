@@ -621,3 +621,6 @@ func (s *SQLiteStore) WriteQTTeacherOverallCache(school, examRuCode, examGuid, r
 		logger.Printf("SQLiteStore WriteQTTeacherOverallCache error: %v", err)
 	}
 }
+
+func (s *SQLiteStore) SubmitLeaderboard(classCode string, entry LeaderboardEntry) {}
+func (s *SQLiteStore) ViewLeaderboard(classCode string) []LeaderboardEntry        { return nil }

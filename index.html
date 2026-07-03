@@ -356,6 +356,23 @@
   }
   /* 答题卡图片区域零光晕避免卡顿 */
   .sheet-wrap img { box-shadow: none !important; }
+  /* 目标追踪 */
+  .goal-banner { background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: var(--r-card-sm); padding:10px 14px; margin-bottom:8px; border:1px solid var(--glass-border); font-size:12px; color:var(--text-secondary); }
+  .goal-banner.goal-met { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.2); color:#15803d; font-weight:600; }
+  .goal-bar { height:6px; border-radius:3px; background:var(--hairline-solid); margin-bottom:6px; overflow:hidden; }
+  .goal-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--accent-from),var(--accent-to)); transition:width .6s var(--hmos-emphasized); }
+  /* AI 建议 */
+  .advice-item { padding:10px 12px; margin-bottom:6px; background:var(--glass-bg-2); border-radius:10px; border:1px solid var(--hairline); font-size:13px; color:var(--text-primary); line-height:1.5; }
+  .advice-item::before { content:attr(data-icon); margin-right:6px; }
+  /* 排行榜 */
+  .lb-row { display:flex; align-items:center; padding:10px 8px; border-bottom:1px solid var(--hairline); gap:8px; font-size:14px; }
+  .lb-row:last-child { border:none; }
+  .lb-rank { font-weight:700; font-size:16px; width:32px; text-align:center; flex-shrink:0; }
+  .lb-name { flex:1; font-weight:600; }
+  .lb-score { font-weight:700; color:var(--accent-from); }
+  .lb-you { background:rgba(var(--accent-rgb),0.06); border-radius:10px; }
+  /* 状态卡片 */
+  .status-card { cursor:pointer; }
   @keyframes detIn { from{opacity:0;transform:scaleY(.92) translateY(-8px)} to{opacity:1;transform:scaleY(1) translateY(0)} }
   .detail h3 { font-size:20px; font-weight:700; margin-bottom:2px; }
   .detail .dm { font-size:12px; color: var(--text-tertiary); margin-bottom:14px; }
@@ -623,9 +640,16 @@
     <button class="on" data-s="query" onclick="go('query')">查询</button>
     <button data-s="bind" onclick="go('bind')">绑定</button>
     <button data-s="huikao" onclick="go('huikao')">会考</button>
+    <button data-s="stats" onclick="go('stats')">统计</button>
   </div>
 
   <div id="p-query" class="page show">
+    <div class="card status-card" id="statusCard" style="display:none;padding:14px;margin-bottom:0;max-width:360px;margin-left:auto;margin-right:auto;" onclick="openStats()">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div><span style="font-size:11px;color:var(--text-tertiary);">最近考试</span><div style="font-size:15px;font-weight:600;" id="statusExamName">--</div></div>
+        <div style="text-align:right;"><span style="font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--accent-from),var(--accent-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;" id="statusScore">--</span><span style="font-size:14px;color:var(--text-tertiary);">分</span></div>
+      </div>
+    </div>
     <div style="max-width:360px;margin:14vh auto 0;">
       <div class="search-wrap">
         <input id="qq" type="text" placeholder="输入 QQ 号" autocomplete="off" inputmode="numeric">
@@ -642,6 +666,31 @@
       <p style="font-size:14px;color:var(--text-secondary);margin-bottom:24px;max-width:280px;">跳转至福建省教育考试院官网<br>查询学业水平考试成绩</p>
       <button class="btn-full" onclick="window.open('https://www.eeafj.cn','_blank')" style="max-width:260px;animation:none;">前往福建省教育考试院</button>
       <p style="font-size:11px;color:var(--text-tertiary);margin-top:12px;">www.eeafj.cn</p>
+    </div>
+  </div>
+
+  <div id="p-stats" class="page">
+    <div style="padding:8px 0;">
+      <div class="card" style="padding:16px;">
+        <p style="font-size:12px;color:var(--text-tertiary);margin-bottom:6px;">成绩趋势</p>
+        <canvas id="trend-canvas" width="360" height="260" style="width:100%;max-width:360px;height:auto;aspect-ratio:360/260;display:block;margin:0 auto;"></canvas>
+        <div id="trend-empty" style="display:none;text-align:center;padding:40px 20px;color:var(--text-tertiary);font-size:14px;">至少需要2次考试记录才能生成趋势图</div>
+      </div>
+      <div class="card" style="padding:16px;margin-top:8px;" id="analysis-card" hidden>
+        <p style="font-size:12px;color:var(--text-tertiary);margin-bottom:8px;">学科分析</p>
+        <div id="weak-section"></div>
+        <div id="strong-section" style="margin-top:10px;"></div>
+      </div>
+      <div class="card" style="padding:16px;margin-top:8px;" id="leaderboard-card">
+        <p style="font-size:12px;color:var(--text-tertiary);margin-bottom:8px;">班级排行榜</p>
+        <p style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">与同学匿名比拼成绩</p>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input id="classCodeInput" type="text" placeholder="输入6位班级码" maxlength="6" inputmode="numeric" style="flex:1;padding:9px;border:1px solid var(--hairline-solid);border-radius:10px;background:var(--glass-bg-2);color:var(--text-primary);font-size:14px;">
+          <button onclick="joinLeaderboard()" style="padding:9px 14px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent-from),var(--accent-to));color:#fff;font-size:13px;font-weight:600;">加入</button>
+        </div>
+        <button onclick="createLeaderboard()" style="width:100%;padding:8px;border:1px dashed var(--hairline-solid);border-radius:10px;background:transparent;color:var(--text-secondary);font-size:12px;cursor:pointer;">+ 创建新班级码</button>
+        <div id="lb-res" style="margin-top:10px;"></div>
+      </div>
     </div>
   </div>
 
@@ -690,6 +739,8 @@
       <img src="" id="eggGif" style="max-width:100%;max-height:220px;border-radius:16px;" alt="丑橘">
       <p style="color:var(--text-secondary);font-size:13px;font-weight:600;margin-top:6px;">丑橘…不丑…</p>
     </div>
+    <div class="srow2"><div><div class="sl">目标分数</div><div class="sd">设定考试目标</div></div><input id="goalScore" type="number" placeholder="0" onchange="saveGoals()" style="width:80px;text-align:right;border:1px solid var(--hairline-solid);border-radius:10px;padding:6px 10px;font-size:14px;background:var(--glass-bg-2);color:var(--text-primary);"></div>
+    <div class="srow2"><div><div class="sl">目标排名</div></div><input id="goalRank" type="number" placeholder="0" onchange="saveGoals()" style="width:80px;text-align:right;border:1px solid var(--hairline-solid);border-radius:10px;padding:6px 10px;font-size:14px;background:var(--glass-bg-2);color:var(--text-primary);"></div>
     <div class="srow2"><div><div class="sl">版本</div><div class="sd">ScoreBot 3.0</div></div><span style="color:var(--text-tertiary);">3.0</span></div>
     <div style="text-align:center;color:var(--text-tertiary);font-size:11px;padding:18px 0 4px;">免责声明：本工具仅用于个人学习成绩查询<br>数据来源于好分数/七天网络官方接口</div>
   </div>
@@ -861,6 +912,7 @@ function go(p){
   document.getElementById('p-'+p).classList.add('show');
   document.querySelectorAll('.seg button').forEach(function(b){ b.classList.toggle('on',b.dataset.s===p); });
   hp('light');
+  if(p==='stats')renderStats();
 }
 
 async function bind(){
@@ -1048,6 +1100,8 @@ async function det(qqid,eid,el){
     var d=await r.json();
     if(!d.success){ w.innerHTML='<p style="color:#dc2626;padding:8px;">'+esc(d.error)+'</p>'; return; }
     w.innerHTML = detHtml(d.data);
+    saveExam(d.data);
+    submitLB(d.data);
   }catch(e){ w.innerHTML='<p style="color:#dc2626;padding:8px;">加载失败</p>'; }
 }
 
@@ -1070,6 +1124,13 @@ function detHtml(d){
     if(d.totalStudents>0) h+='<span class="tag">共 '+d.totalStudents+' 人</span>';
   }
   h+='</div>';
+  // 目标追踪
+  var gs=parseInt(localStorage.getItem('sb_goal_score')||'0');
+  if(gs>0){
+    var cs=parseInt(d.fuScore||d.score),diff=cs-gs;
+    if(diff>=0) h+='<div class="goal-banner goal-met"><span>&#127881;</span> 已超过目标 '+diff+' 分!</div>';
+    else{var pct=Math.round(cs/gs*100);h+='<div class="goal-banner"><div class="goal-bar"><div class="goal-fill" style="width:'+Math.min(100,pct)+'%"></div></div><span>离目标 '+gs+' 分还差 '+Math.abs(diff)+' 分 ('+pct+'%)</span></div>';}
+  }
   if(d.grade&&d.totalStudents>0){
     h+='<canvas id="pie-'+d.examId+'" width="260" height="200" style="width:260px;height:200px;display:block;margin:10px auto 0;image-rendering:auto;"></canvas>';
     setTimeout(function(){drawGradePie('pie-'+d.examId,d.grade,d.totalStudents)},50);
@@ -1092,6 +1153,7 @@ function detHtml(d){
     }
     h+='<div id="sheetImg"></div>';
   }
+  h+='<button class="btn-full" onclick="showAIAdvice(\''+ea(d.examId)+'\',this)" style="max-width:100%;margin-top:8px;padding:10px;font-size:13px;">AI 分析</button>';
   h+='</div>';
   return h;
 }
@@ -1137,6 +1199,256 @@ _iv.addEventListener('touchend',function(e){
     }
   }
 });
+
+// ---- 考试历史 ----
+function saveExam(d){
+  var exams=JSON.parse(localStorage.getItem('sb_exams')||'[]');
+  var sub=d.subjects?d.subjects.map(function(s){return{name:s.name,score:s.score,fullScore:s.fullScore,grade:s.grade||''};}):[];
+  var e={examId:d.examId,examName:d.examName,examTime:d.examTime,score:d.score,fuScore:d.fuScore,fullScore:d.fullScore,rankLow:d.rankLow,rankHigh:d.rankHigh,grade:d.grade,totalStudents:d.totalStudents,subjects:sub};
+  // 去重
+  for(var i=0;i<exams.length;i++){if(exams[i].examId===e.examId){exams.splice(i,1);break;}}
+  exams.unshift(e);
+  if(exams.length>50)exams.length=50;
+  localStorage.setItem('sb_exams',JSON.stringify(exams));
+  setTimeout(updateStatusCard,100);
+}
+
+// ---- 状态卡片 ----
+function updateStatusCard(){
+  var exams=JSON.parse(localStorage.getItem('sb_exams')||'[]');
+  var card=document.getElementById('statusCard');
+  if(!card||!exams.length){if(card)card.style.display='none';return;}
+  card.style.display='block';
+  var e=exams[0];
+  document.getElementById('statusExamName').textContent=e.examName||'--';
+  document.getElementById('statusScore').textContent=e.fuScore||e.score||'--';
+}
+function openStats(){go('stats');}
+
+// ---- 统计页 ----
+function renderStats(){
+  var exams=JSON.parse(localStorage.getItem('sb_exams')||'[]');
+  if(exams.length>=2){
+    document.getElementById('trend-canvas').style.display='block';
+    document.getElementById('trend-empty').style.display='none';
+    drawTrendChart(exams);
+  }else{
+    document.getElementById('trend-canvas').style.display='none';
+    document.getElementById('trend-empty').style.display='block';
+  }
+  // 学科分析
+  var a=analyzeWeakSubjects(exams);
+  var ac=document.getElementById('analysis-card');
+  if(exams.length>=2&&(a.weak.length||a.strong.length)){
+    ac.hidden=false;
+    var wh='';var ch={A:'#22c55e',B:'#6366f1',C:'#f59e0b',D:'#ef4444',E:'#881337'};
+    if(a.weak.length){
+      wh+='<p style="font-size:12px;color:#dc2626;font-weight:600;margin-bottom:6px;">&#9888; 薄弱科目</p>';
+      for(var i=0;i<a.weak.length;i++){
+        var w=a.weak[i];wh+='<div style="margin-bottom:4px;"><span style="font-weight:600;">'+esc(w.name)+'</span> ';
+        for(var j=0;j<w.grades.length;j++){wh+='<span style="display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;font-weight:700;margin:0 2px;background:'+(ch[w.grades[j][0]]||'#888')+'20;color:'+(ch[w.grades[j][0]]||'#888')+';">'+w.grades[j]+'</span>';}
+        wh+='</div>';
+      }
+    }
+    if(a.strong.length){
+      wh+='<p style="font-size:12px;color:#22c55e;font-weight:600;margin-top:10px;margin-bottom:6px;">&#9733; 优势科目</p>';
+      for(var i=0;i<a.strong.length;i++){
+        var s2=a.strong[i];wh+='<div style="margin-bottom:4px;"><span style="font-weight:600;">'+esc(s2.name)+'</span> ';
+        for(var j=0;j<s2.grades.length;j++){wh+='<span style="display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;font-weight:700;margin:0 2px;background:'+(ch[s2.grades[j][0]]||'#888')+'20;color:'+(ch[s2.grades[j][0]]||'#888')+';">'+s2.grades[j]+'</span>';}
+        wh+='</div>';
+      }
+    }
+    document.getElementById('weak-section').innerHTML=wh;
+  }else{ac.hidden=true;}
+  // 排行榜
+  var cc=localStorage.getItem('sb_class_code');
+  if(cc){document.getElementById('classCodeInput').value=cc;fetchLB();}
+}
+
+function analyzeWeakSubjects(exams){
+  var bySub={};
+  for(var i=0;i<exams.length;i++){
+    var e=exams[i];
+    if(!e.subjects)continue;
+    for(var j=0;j<e.subjects.length;j++){
+      var s=e.subjects[j],n=s.name,g=(s.grade||'')[0];
+      if(!g||g==='-')continue;
+      if(!bySub[n])bySub[n]=[];
+      bySub[n].push(g);
+    }
+  }
+  var weak=[],strong=[];
+  for(var k in bySub){
+    var gs=bySub[k],bad=0,good=0;
+    for(var g=0;g<gs.length;g++){if(gs[g]==='D'||gs[g]==='E'||gs[g]==='C')bad++;else good++;}
+    var grades=[];
+    for(var i=exams.length-1;i>=0;i--){
+      var e=exams[i];if(!e.subjects)continue;
+      for(var j=0;j<e.subjects.length;j++){if(e.subjects[j].name===k&&e.subjects[j].grade){grades.push(e.subjects[j].grade);break;}}
+    }
+    if(bad>=2)weak.push({name:k,grades:grades});
+    if(good===gs.length&&gs.length>=2)strong.push({name:k,grades:grades});
+  }
+  return{weak:weak,strong:strong};
+}
+
+function drawTrendChart(exams){
+  var c=document.getElementById('trend-canvas');if(!c)return;
+  var dpr=Math.min(2,window.devicePixelRatio||1);
+  var sw=360,sh=260;
+  c.width=Math.round(sw*dpr);c.height=Math.round(sh*dpr);
+  c.style.width=sw+'px';c.style.height=sh+'px';
+  var x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
+  var dark=document.documentElement.matches('[data-dark="true"]')||(!document.documentElement.getAttribute('data-dark')&&matchMedia('(prefers-color-scheme:dark)').matches);
+  var txt=dark?'#e5e7eb':'#374151',sub=dark?'#9ca3af':'#9ca3af',line=dark?'#a78bfa':'#7c3aed';
+  var pad={l:42,r:20,t:24,b:40},w=sw-pad.l-pad.r,h=sh-pad.t-pad.b;
+  // 数据点：按时间正序
+  var pts=[];for(var i=exams.length-1;i>=0;i--){var e=exams[i],sc=parseFloat(e.fuScore||e.score);if(sc>0)pts.push({d:e.examTime.substring(5)||'',s:sc,n:e.examName});}
+  if(pts.length<2)return;
+  var minS=pts[0].s,maxS=pts[0].s;
+  for(var i=1;i<pts.length;i++){if(pts[i].s<minS)minS=pts[i].s;if(pts[i].s>maxS)maxS=pts[i].s;}
+  var padV=(maxS-minS)*.25||20;minS=Math.max(0,minS-padV);maxS=maxS+padV;
+  function xp(i){return pad.l+(i/(pts.length-1))*w;}
+  function yp(v){return pad.t+h-(v-minS)/(maxS-minS)*h;}
+  x.clearRect(0,0,sw,sh);
+  // 网格
+  x.strokeStyle=dark?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)';x.lineWidth=1;
+  for(var i=0;i<=4;i++){var gy=pad.t+h*i/4;x.beginPath();x.moveTo(pad.l,gy);x.lineTo(sw-pad.r,gy);x.stroke();}
+  // 轴标签
+  x.fillStyle=sub;x.font='9px sans-serif';x.textAlign='right';
+  for(var i=0;i<=4;i++){x.fillText(Math.round(minS+(maxS-minS)*i/4),pad.l-6,pad.t+h*(4-i)/4+3);}
+  x.textAlign='center';
+  for(var i=0;i<pts.length;i++){x.fillText(pts[i].d,xp(i),sh-pad.b+14);}
+  // 折线动画
+  var prog=0,startT=performance.now(),dur=800;
+  function anim(now){
+    prog=Math.min(1,(now-startT)/dur);prog=1-Math.pow(1-prog,3);
+    // 清空图表区
+    x.clearRect(pad.l-2,pad.t-2,w+4,h+4);
+    // 网格线重画
+    x.strokeStyle=dark?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)';x.lineWidth=1;
+    for(var i=0;i<=4;i++){var gy=pad.t+h*i/4;x.beginPath();x.moveTo(pad.l,gy);x.lineTo(sw-pad.r,gy);x.stroke();}
+    // 渐变色填充
+    var lastIdx=Math.floor(prog*(pts.length-1));
+    var segProg=(prog*(pts.length-1))-lastIdx;
+    x.beginPath();x.moveTo(xp(0),yp(pts[0].s));
+    for(var i=1;i<=lastIdx;i++)x.lineTo(xp(i),yp(pts[i].s));
+    if(lastIdx<pts.length-1){
+      var cx2=xp(lastIdx)+(xp(lastIdx+1)-xp(lastIdx))*segProg;
+      var cy2=yp(pts[lastIdx].s)+(yp(pts[lastIdx+1].s)-yp(pts[lastIdx].s))*segProg;
+      x.lineTo(cx2,cy2);
+    }
+    x.lineTo(xp(Math.min(pts.length-1,lastIdx+1)),sh-pad.b);
+    x.lineTo(xp(0),sh-pad.b);x.closePath();
+    var grad=x.createLinearGradient(0,pad.t,0,sh-pad.b);
+    grad.addColorStop(0,line+'44');grad.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle=grad;x.fill();
+    // 折线
+    x.beginPath();x.moveTo(xp(0),yp(pts[0].s));
+    for(var i=1;i<=lastIdx;i++)x.lineTo(xp(i),yp(pts[i].s));
+    if(lastIdx<pts.length-1){
+      var cx2=xp(lastIdx)+(xp(lastIdx+1)-xp(lastIdx))*segProg;
+      var cy2=yp(pts[lastIdx].s)+(yp(pts[lastIdx+1].s)-yp(pts[lastIdx].s))*segProg;
+      x.lineTo(cx2,cy2);
+    }
+    x.strokeStyle=line;x.lineWidth=2.5;x.lineJoin='round';x.lineCap='round';x.stroke();
+    // 数据点
+    for(var i=0;i<=lastIdx;i++){
+      x.beginPath();x.arc(xp(i),yp(pts[i].s),3.5,0,Math.PI*2);
+      x.fillStyle='#fff';x.fill();x.strokeStyle=line;x.lineWidth=2;x.stroke();
+    }
+    if(prog<1)requestAnimationFrame(anim);
+  }
+  requestAnimationFrame(anim);
+}
+
+// ---- 排行榜 ----
+function createLeaderboard(){
+  var code=String(Math.floor(100000+Math.random()*900000));
+  localStorage.setItem('sb_class_code',code);
+  document.getElementById('classCodeInput').value=code;
+  fetchLB();
+  toast('班级码已生成: '+code+'，分享给同学即可','ok',4000);
+}
+function joinLeaderboard(){
+  var code=document.getElementById('classCodeInput').value.trim();
+  if(!/^\d{6}$/.test(code)){toast('请输入6位数字班级码','err',2000);return;}
+  localStorage.setItem('sb_class_code',code);
+  fetchLB();
+  toast('已加入班级 '+code,'ok',2000);
+}
+async function fetchLB(){
+  var code=localStorage.getItem('sb_class_code');
+  var qq=localStorage.getItem('sb_qq')||'0';
+  if(!code||!qq)return;
+  try{
+    var r=await fetch(API+'/api/leaderboard?qqid='+qq+'&code='+code);
+    var d=await r.json();
+    if(!d.success){document.getElementById('lb-res').innerHTML='<p style="color:var(--text-tertiary);font-size:12px;padding:8px;">暂无排行数据</p>';return;}
+    var h='';for(var i=0;i<d.data.entries.length;i++){
+      var e=d.data.entries[i],medal=e.rank===1?'&#129351;':e.rank===2?'&#129352;':e.rank===3?'&#129353;':'';
+      h+='<div class="lb-row'+(e.isYou?' lb-you':'')+'"><span class="lb-rank">'+medal+' '+e.rank+'</span><span class="lb-name">'+esc(e.label)+'</span><span class="lb-score">'+esc(e.score)+' 分</span></div>';
+    }
+    document.getElementById('lb-res').innerHTML=h;
+  }catch(e){}
+}
+async function submitLB(d){
+  var code=localStorage.getItem('sb_class_code');
+  var qq=localStorage.getItem('sb_qq')||'0';
+  if(!code||!qq)return;
+  var sub=d.subjects?d.subjects.map(function(s){return{name:s.name,score:s.score,fullScore:s.fullScore,grade:s.grade||''};}):[];
+  try{
+    await fetch(API+'/api/leaderboard/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({qqid:qq,classCode:code,examName:d.examName,score:d.fuScore||d.score,rank:d.rankLow||0,subjects:sub})});
+  }catch(e){}
+}
+
+// ---- 目标追踪 ----
+function saveGoals(){
+  localStorage.setItem('sb_goal_score',document.getElementById('goalScore').value||'0');
+  localStorage.setItem('sb_goal_rank',document.getElementById('goalRank').value||'0');
+}
+
+// ---- AI 学习建议 ----
+function showAIAdvice(examId,btn){
+  var wrap=btn.nextElementSibling;
+  if(wrap&&wrap.className==='advice-wrap'){wrap.style.display=wrap.style.display==='none'?'block':'none';return;}
+  var exams=JSON.parse(localStorage.getItem('sb_exams')||'[]');
+  var d=null;for(var i=0;i<exams.length;i++){if(exams[i].examId===examId){d=exams[i];break;}}
+  if(!d)return;
+  var advice=generateAdvice(d);
+  var h='<div class="advice-wrap" style="margin-top:8px;">';
+  h+='<p style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">学习建议 (智能分析)</p>';
+  for(var i=0;i<advice.length;i++)h+='<div class="advice-item" data-icon="'+(i+1)+'.">'+advice[i]+'</div>';
+  h+='<p style="font-size:10px;color:var(--text-tertiary);margin-top:6px;">基于规则分析</p></div>';
+  btn.insertAdjacentHTML('afterend',h);
+}
+function generateAdvice(d){
+  var a=[],weak=[],strong=[];
+  if(d.subjects)for(var i=0;i<d.subjects.length;i++){
+    var s=d.subjects[i],g=(s.grade||'C')[0];
+    if(g==='D'||g==='E')weak.push(s.name);else if(g==='A')strong.push(s.name);
+  }
+  if(!weak.length)a.push('各科表现均衡，继续保持当前学习节奏。');
+  else if(weak.length===1)a.push('重点关注 '+weak[0]+'，建议每天额外投入30分钟专项练习。');
+  else a.push('薄弱科目较多('+weak.join('、')+')，建议优先突破其中1-2科，避免分散精力。');
+  var ts=parseInt(d.fuScore||d.score),fs=parseInt(d.fuFullScore||d.fullScore);
+  if(fs>0){var r=ts/fs;if(r<.6)a.push('总分处于中下游区域，建议先巩固基础知识点，确保基础题不丢分。');else if(r>=.85)a.push('总分已接近优秀水平，接下来重点攻克压轴题和易错题型。');}
+  var exams=JSON.parse(localStorage.getItem('sb_exams')||'[]');
+  if(exams.length>=2){
+    var prev=parseInt(exams[1].fuScore||exams[1].score||'0'),curr=parseInt(d.fuScore||d.score||'0'),t=curr-prev;
+    if(t>10)a.push('相比上次考试进步了 '+t+' 分，保持当前学习状态！');
+    else if(t<-10)a.push('相比上次退步了 '+Math.abs(t)+' 分，建议复盘错题，找出知识薄弱点。');
+  }
+  return a;
+}
+
+// ---- 初始化 ----
+(function initNew(){
+  // 恢复目标设置
+  var gs=localStorage.getItem('sb_goal_score');if(gs&&gs!=='0')document.getElementById('goalScore').value=gs;
+  var gr=localStorage.getItem('sb_goal_rank');if(gr&&gr!=='0')document.getElementById('goalRank').value=gr;
+})();
+
 </script>
 <script>
 // --- 银河粒子 (深色模式专属) ---

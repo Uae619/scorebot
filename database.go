@@ -841,3 +841,6 @@ func mysqlOpWriteQTTeacherOverallCache(school, examRuCode, examGuid, ruleGuid, p
 		log.Printf("mysqlOpWriteQTTeacherOverallCache exec error: %v", err)
 	}
 }
+
+func (s MySQLStore) SubmitLeaderboard(classCode string, entry LeaderboardEntry) {}
+func (s MySQLStore) ViewLeaderboard(classCode string) []LeaderboardEntry        { return nil }

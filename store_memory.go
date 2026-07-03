@@ -23,6 +23,7 @@ type MemoryStore struct {
 	qtStudentExamCache map[string]cacheEntry[[]map[string]any]
 	qtTeacherRuleCache map[string]cacheEntry[qtTeacherRuleRef]
 	qtTeacherOverall   map[string]cacheEntry[string]
+	leaderboards       map[string][]LeaderboardEntry
 }
 
 func NewMemoryStore() *MemoryStore {
@@ -34,6 +35,7 @@ func NewMemoryStore() *MemoryStore {
 		qtStudentExamCache: map[string]cacheEntry[[]map[string]any]{},
 		qtTeacherRuleCache: map[string]cacheEntry[qtTeacherRuleRef]{},
 		qtTeacherOverall:   map[string]cacheEntry[string]{},
+		leaderboards:       map[string][]LeaderboardEntry{},
 	}
 }
 
@@ -265,4 +267,31 @@ func (s *MemoryStore) WriteQTTeacherOverallCache(school, examRuCode, examGuid, r
 		expiresAt: time.Now().Add(ttl),
 	}
 	s.mu.Unlock()
+}
+
+func (s *MemoryStore) SubmitLeaderboard(classCode string, entry LeaderboardEntry) {
+	s.mu.Lock()
+	entries := s.leaderboards[classCode]
+	found := false
+	for i, e := range entries {
+		if e.QQID == entry.QQID {
+			entries[i] = entry
+			found = true
+			break
+		}
+	}
+	if !found {
+		entries = append(entries, entry)
+	}
+	s.leaderboards[classCode] = entries
+	s.mu.Unlock()
+}
+
+func (s *MemoryStore) ViewLeaderboard(classCode string) []LeaderboardEntry {
+	s.mu.RLock()
+	entries := s.leaderboards[classCode]
+	s.mu.RUnlock()
+	result := make([]LeaderboardEntry, len(entries))
+	copy(result, entries)
+	return result
 }
