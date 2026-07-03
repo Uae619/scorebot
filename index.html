@@ -1218,7 +1218,8 @@ function renderStats(){
   var exams=JSON.parse(localStorage.getItem('sb_exams')||'[]');
   if(exams.length>=2){
     document.getElementById('trend-empty').style.display='none';
-    drawTrendChart(exams);
+    var c=document.getElementById('trend-canvas');c.style.display='block';
+    setTimeout(function(){drawTrendChart(exams);},100);
   }else{
     document.getElementById('trend-canvas').style.display='none';
     document.getElementById('trend-empty').style.display='block';
@@ -1278,16 +1279,16 @@ function analyzeWeakSubjects(exams){
 
 function drawTrendChart(exams){
   var c=document.getElementById('trend-canvas');if(!c)return;
-  c.style.display='block';
+  var x=c.getContext('2d');
   var sw=360,sh=260,dpr=Math.min(2,window.devicePixelRatio||1);
-  c.width=sw*dpr;c.height=sh*dpr;
-  var x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
+  c.width=sw*dpr;c.height=sh*dpr;c.style.display='block';
+  x.setTransform(dpr,0,0,dpr,0,0);
   var dark=document.documentElement.matches('[data-dark="true"]')||(!document.documentElement.getAttribute('data-dark')&&matchMedia('(prefers-color-scheme:dark)').matches);
-  var txt=dark?'#e5e7eb':'#374151',sub=dark?'#9ca3af':'#9ca3af',line=dark?'#a78bfa':'#7c3aed';
+  var line=dark?'#a78bfa':'#7c3aed',sub=dark?'#9ca3af':'#9ca3af';
   var pad={l:44,r:16,t:20,b:40},w=sw-pad.l-pad.r,h=sh-pad.t-pad.b;
-  // 数据点：按时间正序（最旧→最新）
-  var pts=[];for(var i=exams.length-1;i>=0;i--){var e=exams[i],sc=parseFloat(e.fuScore||e.score);if(!isNaN(sc)&&sc>0){var dt=(e.examTime||'').substring(5)||'';pts.push({d:dt,s:sc,n:e.examName||''});}}
-  if(pts.length<2){return;}
+  // 按时间正序
+  var pts=[];for(var i=exams.length-1;i>=0;i--){var e=exams[i],sc=parseFloat(e.fuScore||e.score)||0;if(sc>0){pts.push({d:(e.examTime||'').substring(5),s:sc,n:e.examName||''});}}
+  if(pts.length<2){x.fillStyle=sub;x.font='13px sans-serif';x.textAlign='center';x.fillText('至少需要2次考试成绩',sw/2,sh/2);return;}
   var minS=pts[0].s,maxS=pts[0].s;
   for(var i=1;i<pts.length;i++){if(pts[i].s<minS)minS=pts[i].s;if(pts[i].s>maxS)maxS=pts[i].s;}
   var padV=(maxS-minS)*.25||20;minS=Math.max(0,minS-padV);maxS=maxS+padV;
