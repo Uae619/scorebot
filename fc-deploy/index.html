@@ -1427,12 +1427,6 @@ function getAdvice(d,cb){
     else cb(generateAdvice(d));
   }).catch(function(){cb(generateAdvice(d));});
 }
-  var h='<div class="advice-wrap" style="margin-top:8px;">';
-  h+='<p style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">学习建议 (智能分析)</p>';
-  for(var i=0;i<advice.length;i++)h+='<div class="advice-item" data-icon="'+(i+1)+'.">'+advice[i]+'</div>';
-  h+='<p style="font-size:10px;color:var(--text-tertiary);margin-top:6px;">基于规则分析</p></div>';
-  btn.insertAdjacentHTML('afterend',h);
-}
 function generateAdvice(d){
   var a=[],weak=[],strong=[];
   if(d.subjects)for(var i=0;i<d.subjects.length;i++){
