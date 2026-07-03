@@ -640,8 +640,8 @@
   <div class="seg">
     <button class="on" data-s="query" onclick="go('query')">查询</button>
     <button data-s="bind" onclick="go('bind')">绑定</button>
-    <button data-s="huikao" onclick="go('huikao')">会考</button>
     <button data-s="stats" onclick="go('stats')">统计</button>
+    <button data-s="huikao" onclick="go('huikao')">会考</button>
   </div>
 
   <div id="p-query" class="page show">
@@ -652,16 +652,6 @@
       </div>
     </div>
     <div id="res" style="margin-top:16px;"></div>
-  </div>
-
-  <div id="p-huikao" class="page">
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60dvh;text-align:center;padding:20px;">
-      <div style="font-size:56px;margin-bottom:12px;">&#127891;</div>
-      <h2 style="font-size:22px;font-weight:700;margin-bottom:6px;">会考查询</h2>
-      <p style="font-size:14px;color:var(--text-secondary);margin-bottom:24px;max-width:280px;">跳转至福建省教育考试院官网<br>查询学业水平考试成绩</p>
-      <button class="btn-full" onclick="window.open('https://www.eeafj.cn','_blank')" style="max-width:260px;animation:none;">前往福建省教育考试院</button>
-      <p style="font-size:11px;color:var(--text-tertiary);margin-top:12px;">www.eeafj.cn</p>
-    </div>
   </div>
 
   <div id="p-stats" class="page">
@@ -683,6 +673,16 @@
         <div id="weak-section"></div>
         <div id="strong-section" style="margin-top:10px;"></div>
       </div>
+    </div>
+  </div>
+
+  <div id="p-huikao" class="page">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60dvh;text-align:center;padding:20px;">
+      <div style="font-size:56px;margin-bottom:12px;">&#127891;</div>
+      <h2 style="font-size:22px;font-weight:700;margin-bottom:6px;">会考查询</h2>
+      <p style="font-size:14px;color:var(--text-secondary);margin-bottom:24px;max-width:280px;">跳转至福建省教育考试院官网<br>查询学业水平考试成绩</p>
+      <button class="btn-full" onclick="window.open('https://www.eeafj.cn','_blank')" style="max-width:260px;animation:none;">前往福建省教育考试院</button>
+      <p style="font-size:11px;color:var(--text-tertiary);margin-top:12px;">www.eeafj.cn</p>
     </div>
   </div>
 
