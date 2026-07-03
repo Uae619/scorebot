@@ -732,9 +732,7 @@
         <button class="hmos-dd-btn" id="aiModelBtn" onclick="toggleAIDD()"><span id="aiModelLabel">规则引擎(免费)</span><span class="ar" style="font-size:12px;">&#9660;</span></button>
         <div class="hmos-dd-panel" id="aiModelPanel" style="display:none;">
           <div class="hmos-dd-opt" data-val="" onclick="pickAIModel('','规则引擎(免费)',this)">规则引擎(免费)</div>
-          <div class="hmos-dd-opt" data-val="deepseek-v3" onclick="pickAIModel('deepseek-v3','DeepSeek-V3',this)">DeepSeek-V3</div>
           <div class="hmos-dd-opt" data-val="deepseek-v4-flash" onclick="pickAIModel('deepseek-v4-flash','DeepSeek-V4 Flash',this)">DeepSeek-V4 Flash</div>
-          <div class="hmos-dd-opt" data-val="qwen" onclick="pickAIModel('qwen','通义千问(Qwen)',this)">通义千问(Qwen)</div>
         </div>
       </div>
     </div>
@@ -1398,9 +1396,7 @@ function getAdvice(d,cb){
   var sys={role:'system',content:'你是一位高中学习辅导专家。根据考试成绩给出简洁建议，3-5条，每条≤30字。'};
   var usr={role:'user',content:JSON.stringify(d)};
   var base={max_tokens:500};
-  if(model==='deepseek-v3'){url='https://api.deepseek.com/v1/chat/completions';payload={model:'deepseek-chat',messages:[sys,usr]};Object.assign(payload,base);}
-  else if(model==='deepseek-v4-flash'){url='https://api.deepseek.com/v1/chat/completions';payload={model:'deepseek-chat',messages:[sys,usr]};Object.assign(payload,base);}
-  else if(model==='qwen'){url='https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';payload={model:'qwen-plus',messages:[sys,usr]};Object.assign(payload,base);}
+  if(model==='deepseek-v4-flash'){url='https://api.deepseek.com/v1/chat/completions';payload={model:'deepseek-chat',messages:[sys,usr]};Object.assign(payload,base);}
   if(!url){cb(generateAdvice(d));return;}
   fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(payload)}).then(function(r){return r.json();}).then(function(j){
     var txt=j.choices&&j.choices[0]?j.choices[0].message.content:'';
