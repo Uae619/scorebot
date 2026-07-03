@@ -364,15 +364,16 @@
   /* AI 建议 */
   .advice-item { padding:10px 12px; margin-bottom:6px; background:var(--glass-bg-2); border-radius:10px; border:1px solid var(--hairline); font-size:13px; color:var(--text-primary); line-height:1.5; }
   .advice-item::before { content:attr(data-icon); margin-right:6px; }
-  /* 排行榜 */
-  .lb-row { display:flex; align-items:center; padding:10px 8px; border-bottom:1px solid var(--hairline); gap:8px; font-size:14px; }
-  .lb-row:last-child { border:none; }
-  .lb-rank { font-weight:700; font-size:16px; width:32px; text-align:center; flex-shrink:0; }
-  .lb-name { flex:1; font-weight:600; }
-  .lb-score { font-weight:700; color:var(--accent-from); }
-  .lb-you { background:rgba(var(--accent-rgb),0.06); border-radius:10px; }
-  /* 状态卡片 */
-  .status-card { cursor:pointer; }
+  /* 自定义 AI 下拉 */
+  .hmos-dd-wrap { position:relative; }
+  .hmos-dd-btn { width:100%;display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border:1px solid var(--hairline-solid);border-radius:8px;background:var(--glass-bg-2);color:var(--text-primary);font-size:12px;cursor:pointer; }
+  .hmos-dd-panel { position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--glass-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--glass-border);border-radius:10px;overflow:hidden;margin-top:4px;box-shadow:0 4px 20px rgba(0,0,0,0.08); }
+  .hmos-dd-opt { padding:8px 12px;font-size:12px;color:var(--text-primary);cursor:pointer;border-bottom:1px solid var(--hairline); }
+  .hmos-dd-opt:last-child { border:none; }
+  .hmos-dd-opt:active { background:rgba(var(--accent-rgb),0.08); }
+  /* HarmonyOS 7.0 AI 按钮 */
+  .btn-ai { display:block;width:100%;max-width:100%;margin-top:8px;padding:12px;border:none;border-radius:16px;background:linear-gradient(135deg, rgba(var(--accent-rgb),0.12), rgba(var(--accent-rgb),0.06));color:var(--accent-from);font-size:14px;font-weight:600;cursor:pointer;border:1px solid rgba(var(--accent-rgb),0.15);transition:all .25s var(--hmos-standard); }
+  .btn-ai:active { background:linear-gradient(135deg, rgba(var(--accent-rgb),0.25), rgba(var(--accent-rgb),0.12));transform:scale(.97); }
   @keyframes detIn { from{opacity:0;transform:scaleY(.92) translateY(-8px)} to{opacity:1;transform:scaleY(1) translateY(0)} }
   .detail h3 { font-size:20px; font-weight:700; margin-bottom:2px; }
   .detail .dm { font-size:12px; color: var(--text-tertiary); margin-bottom:14px; }
@@ -644,12 +645,6 @@
   </div>
 
   <div id="p-query" class="page show">
-    <div class="card status-card" id="statusCard" style="display:none;padding:14px;margin-bottom:0;max-width:360px;margin-left:auto;margin-right:auto;" onclick="openStats()">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div><span style="font-size:11px;color:var(--text-tertiary);">最近考试</span><div style="font-size:15px;font-weight:600;" id="statusExamName">--</div></div>
-        <div style="text-align:right;"><span style="font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--accent-from),var(--accent-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;" id="statusScore">--</span><span style="font-size:14px;color:var(--text-tertiary);">分</span></div>
-      </div>
-    </div>
     <div style="max-width:360px;margin:14vh auto 0;">
       <div class="search-wrap">
         <input id="qq" type="text" placeholder="输入 QQ 号" autocomplete="off" inputmode="numeric">
@@ -671,9 +666,16 @@
 
   <div id="p-stats" class="page">
     <div style="padding:8px 0;">
+      <div class="card" style="padding:14px;margin-bottom:8px;">
+        <p style="font-size:12px;color:var(--text-tertiary);margin-bottom:8px;">目标设定</p>
+        <div style="display:flex;gap:10px;">
+          <div style="flex:1;"><span style="font-size:11px;color:var(--text-tertiary);">目标分数</span><input id="goalScore" type="number" placeholder="0" onchange="saveGoals()" style="width:100%;margin-top:2px;border:1px solid var(--hairline-solid);border-radius:8px;padding:6px 8px;font-size:14px;background:var(--glass-bg-2);color:var(--text-primary);"></div>
+          <div style="flex:1;"><span style="font-size:11px;color:var(--text-tertiary);">目标排名</span><input id="goalRank" type="number" placeholder="0" onchange="saveGoals()" style="width:100%;margin-top:2px;border:1px solid var(--hairline-solid);border-radius:8px;padding:6px 8px;font-size:14px;background:var(--glass-bg-2);color:var(--text-primary);"></div>
+        </div>
+      </div>
       <div class="card" style="padding:16px;">
         <p style="font-size:12px;color:var(--text-tertiary);margin-bottom:6px;">成绩趋势</p>
-        <canvas id="trend-canvas" width="360" height="260" style="width:100%;max-width:360px;height:auto;aspect-ratio:360/260;display:block;margin:0 auto;"></canvas>
+        <canvas id="trend-canvas" width="720" height="520" style="width:100%;max-width:360px;display:block;margin:0 auto;"></canvas>
         <div id="trend-empty" style="display:none;text-align:center;padding:40px 20px;color:var(--text-tertiary);font-size:14px;">至少需要2次考试记录才能生成趋势图</div>
       </div>
       <div class="card" style="padding:16px;margin-top:8px;" id="analysis-card" hidden>
@@ -708,13 +710,10 @@
 
 <div class="overlay" id="modal" onclick="closeSettings(event)">
   <div class="sheet" onclick="event.stopPropagation()">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <h2 style="margin:0;">设置</h2>
-      <button onclick="closeSettingsDirect()" style="background:none;border:none;font-size:20px;color:var(--text-secondary);cursor:pointer;padding:4px 8px;line-height:1;">&#10005;</button>
-    </div>
-    <div class="srow2" style="padding:10px 0;"><div><div class="sl">触感反馈</div><div class="sd">点击按钮时手机轻微震动</div></div><button class="tgl" id="vibBtn" onclick="togVib()"></button></div>
+    <h2>设置</h2>
+    <div class="srow2"><div><div class="sl">触感反馈</div><div class="sd">点击按钮时手机轻微震动</div></div><button class="tgl" id="vibBtn" onclick="togVib()"></button></div>
 
-    <div class="srow2" style="padding:10px 0;"><div><div class="sl">主题颜色</div><div class="sd">切换界面强调色</div></div>
+    <div class="srow2"><div><div class="sl">主题颜色</div><div class="sd">切换界面强调色</div></div>
       <div class="color-swatches">
         <span class="color-dot purple active" data-theme="purple" onclick="setTheme('purple',this)"></span>
         <span class="color-dot blue" data-theme="blue" onclick="setTheme('blue',this)"></span>
@@ -725,33 +724,27 @@
       </div>
     </div>
 
-    <div class="srow2" style="padding:10px 0;"><div><div class="sl">暗色模式</div><div class="sd">切换深色/浅色外观</div></div><button class="tgl" id="darkBtn" onclick="togDark()"></button></div>
+    <div class="srow2"><div><div class="sl">暗色模式</div><div class="sd">切换深色/浅色外观</div></div><button class="tgl" id="darkBtn" onclick="togDark()"></button></div>
 
-    <div class="srow2" style="padding:10px 0;"><div><div class="sl">目标分数</div><div class="sd">设定考试目标</div></div><input id="goalScore" type="number" placeholder="0" onchange="saveGoals()" style="width:72px;text-align:right;border:1px solid var(--hairline-solid);border-radius:8px;padding:4px 8px;font-size:13px;background:var(--glass-bg-2);color:var(--text-primary);"></div>
-    <div class="srow2" style="padding:10px 0;"><div><div class="sl">目标排名</div></div><input id="goalRank" type="number" placeholder="0" onchange="saveGoals()" style="width:72px;text-align:right;border:1px solid var(--hairline-solid);border-radius:8px;padding:4px 8px;font-size:13px;background:var(--glass-bg-2);color:var(--text-primary);"></div>
-
-    <div class="srow2" style="padding:10px 0;"><div><div class="sl">AI API 密钥</div><div class="sd">接入 AI 模型提供学习建议</div></div><input id="aiKey" type="password" placeholder="sk-..." onchange="saveAIKey()" style="width:100%;max-width:180px;border:1px solid var(--hairline-solid);border-radius:8px;padding:4px 8px;font-size:12px;background:var(--glass-bg-2);color:var(--text-primary);"></div>
-    <div class="srow2" style="padding:10px 0;"><div><div class="sl">AI 模型</div></div>
-      <select id="aiModel" onchange="saveAIKey()" style="border:1px solid var(--hairline-solid);border-radius:8px;padding:4px 8px;font-size:12px;background:var(--glass-bg-2);color:var(--text-primary);">
-        <option value="">规则引擎(免费)</option>
-        <option value="deepseek">DeepSeek-V3</option>
-        <option value="qwen">通义千问(Qwen)</option>
-        <option value="gpt">GPT-4o</option>
-        <option value="claude">Claude 4 Sonnet</option>
-        <option value="custom">自定义 API</option>
-      </select>
-    </div>
-    <div id="aiCustomRow" style="display:none;padding:6px 0;">
-      <input id="aiCustomURL" type="text" placeholder="https://api.example.com/v1/chat/completions" onchange="saveAIKey()" style="width:100%;border:1px solid var(--hairline-solid);border-radius:8px;padding:4px 8px;font-size:11px;background:var(--glass-bg-2);color:var(--text-primary);margin-bottom:4px;">
-      <input id="aiCustomModel" type="text" placeholder="模型名称 (如 gpt-4o)" onchange="saveAIKey()" style="width:100%;border:1px solid var(--hairline-solid);border-radius:8px;padding:4px 8px;font-size:11px;background:var(--glass-bg-2);color:var(--text-primary);">
+    <div class="srow2"><div><div class="sl">AI API 密钥</div><div class="sd">接入 AI 模型提供学习建议</div></div><input id="aiKey" type="password" placeholder="sk-..." onchange="saveAIKey()" style="width:100%;max-width:180px;border:1px solid var(--hairline-solid);border-radius:8px;padding:4px 8px;font-size:12px;background:var(--glass-bg-2);color:var(--text-primary);"></div>
+    <div class="srow2"><div><div class="sl">AI 模型</div></div>
+      <div class="hmos-dd-wrap" id="aiModelWrap">
+        <button class="hmos-dd-btn" id="aiModelBtn" onclick="toggleAIDD()"><span id="aiModelLabel">规则引擎(免费)</span><span class="ar" style="font-size:12px;">&#9660;</span></button>
+        <div class="hmos-dd-panel" id="aiModelPanel" style="display:none;">
+          <div class="hmos-dd-opt" data-val="" onclick="pickAIModel('','规则引擎(免费)',this)">规则引擎(免费)</div>
+          <div class="hmos-dd-opt" data-val="deepseek-v3" onclick="pickAIModel('deepseek-v3','DeepSeek-V3',this)">DeepSeek-V3</div>
+          <div class="hmos-dd-opt" data-val="deepseek-v4-flash" onclick="pickAIModel('deepseek-v4-flash','DeepSeek-V4 Flash',this)">DeepSeek-V4 Flash</div>
+          <div class="hmos-dd-opt" data-val="qwen" onclick="pickAIModel('qwen','通义千问(Qwen)',this)">通义千问(Qwen)</div>
+        </div>
+      </div>
     </div>
 
-    <div class="srow2" onclick="egg()" style="cursor:pointer;padding:10px 0;"><div><div class="sl">彩蛋</div><div class="sd">点开有惊喜</div></div></div>
+    <div class="srow2" onclick="egg()" style="cursor:pointer;"><div><div class="sl">彩蛋</div><div class="sd">点开有惊喜</div></div></div>
     <div id="eggBox" style="display:none;text-align:center;padding:10px 0 6px;">
       <img src="" id="eggGif" style="max-width:100%;max-height:160px;border-radius:16px;" alt="丑橘">
       <p style="color:var(--text-secondary);font-size:13px;font-weight:600;margin-top:6px;">丑橘…不丑…</p>
     </div>
-    <div class="srow2" style="padding:10px 0;"><div><div class="sl">版本</div><div class="sd">ScoreBot 3.1</div></div><span style="color:var(--text-tertiary);">3.1</span></div>
+    <div class="srow2"><div><div class="sl">版本</div><div class="sd">ScoreBot 3.1</div></div><span style="color:var(--text-tertiary);">3.1</span></div>
     <div style="text-align:center;color:var(--text-tertiary);font-size:11px;padding:12px 0 4px;">免责声明：本工具仅用于个人学习成绩查询<br>数据来源于好分数/七天网络官方接口</div>
   </div>
 </div>
@@ -1162,7 +1155,7 @@ function detHtml(d){
     }
     h+='<div id="sheetImg"></div>';
   }
-  h+='<button class="btn-full" onclick="showAIAdvice(\''+ea(d.examId)+'\',this)" style="max-width:100%;margin-top:8px;padding:10px;font-size:13px;">AI 分析</button>';
+  h+='<button class="btn-ai" onclick="showAIAdvice(\''+ea(d.examId)+'\',this)">AI 分析</button>';
   h+='</div>';
   return h;
 }
@@ -1220,26 +1213,12 @@ function saveExam(d){
   if(!found)exams.unshift(e);
   if(exams.length>50)exams.length=50;
   localStorage.setItem('sb_exams',JSON.stringify(exams));
-  setTimeout(updateStatusCard,100);
 }
-
-// ---- 状态卡片 ----
-function updateStatusCard(){
-  var exams=JSON.parse(localStorage.getItem('sb_exams')||'[]');
-  var card=document.getElementById('statusCard');
-  if(!card||!exams.length){if(card)card.style.display='none';return;}
-  card.style.display='block';
-  var e=exams[0];
-  document.getElementById('statusExamName').textContent=e.examName||'--';
-  document.getElementById('statusScore').textContent=e.fuScore||e.score||'--';
-}
-function openStats(){go('stats');}
 
 // ---- 统计页 ----
 function renderStats(){
   var exams=JSON.parse(localStorage.getItem('sb_exams')||'[]');
   if(exams.length>=2){
-    document.getElementById('trend-canvas').style.display='block';
     document.getElementById('trend-empty').style.display='none';
     drawTrendChart(exams);
   }else{
@@ -1301,10 +1280,9 @@ function analyzeWeakSubjects(exams){
 
 function drawTrendChart(exams){
   var c=document.getElementById('trend-canvas');if(!c)return;
-  var dpr=Math.min(2,window.devicePixelRatio||1);
-  var sw=360,sh=260;
-  c.width=Math.round(sw*dpr);c.height=Math.round(sh*dpr);
-  c.style.width='100%';c.style.maxWidth=sw+'px';c.style.height='auto';c.style.aspectRatio='360/260';
+  c.style.display='block';
+  var sw=360,sh=260,dpr=Math.min(2,window.devicePixelRatio||1);
+  c.width=sw*dpr;c.height=sh*dpr;
   var x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
   var dark=document.documentElement.matches('[data-dark="true"]')||(!document.documentElement.getAttribute('data-dark')&&matchMedia('(prefers-color-scheme:dark)').matches);
   var txt=dark?'#e5e7eb':'#374151',sub=dark?'#9ca3af':'#9ca3af',line=dark?'#a78bfa':'#7c3aed';
@@ -1370,19 +1348,26 @@ function drawTrendChart(exams){
 }
 
 // ---- 设置 ----
-function closeSettingsDirect(){document.getElementById('modal').style.display='none';}
 function saveGoals(){
   localStorage.setItem('sb_goal_score',document.getElementById('goalScore').value||'0');
   localStorage.setItem('sb_goal_rank',document.getElementById('goalRank').value||'0');
 }
 function saveAIKey(){
   localStorage.setItem('sb_ai_key',document.getElementById('aiKey').value||'');
-  localStorage.setItem('sb_ai_model',document.getElementById('aiModel').value||'');
-  localStorage.setItem('sb_ai_custom_url',document.getElementById('aiCustomURL').value||'');
-  localStorage.setItem('sb_ai_custom_model',document.getElementById('aiCustomModel').value||'');
-  var cr=document.getElementById('aiCustomRow');
-  cr.style.display=document.getElementById('aiModel').value==='custom'?'block':'none';
 }
+function toggleAIDD(){
+  var p=document.getElementById('aiModelPanel');
+  p.style.display=p.style.display==='none'?'block':'none';
+}
+function pickAIModel(val,label,el){
+  localStorage.setItem('sb_ai_model',val);
+  document.getElementById('aiModelLabel').textContent=label;
+  document.getElementById('aiModelPanel').style.display='none';
+}
+document.addEventListener('click',function(e){
+  var w=document.getElementById('aiModelWrap');
+  if(w&&!w.contains(e.target))document.getElementById('aiModelPanel').style.display='none';
+});
 
 // ---- 目标追踪 ----
 
@@ -1410,19 +1395,15 @@ function getAdvice(d,cb){
   var model=localStorage.getItem('sb_ai_model');
   if(!key||!model){cb(generateAdvice(d));return;}
   var url='',payload={};
-  if(model==='deepseek'){url='https://api.deepseek.com/v1/chat/completions';payload={model:'deepseek-chat',messages:[{role:'system',content:'你是一位高中学习辅导专家。根据学生的考试成绩数据，给出简洁实用的学习建议。每次给3-5条建议，每条不超过30字。'},{role:'user',content:JSON.stringify(d)}],max_tokens:500};}
-  else if(model==='qwen'){url='https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';payload={model:'qwen-plus',messages:[{role:'system',content:'你是一位高中学习辅导专家。根据学生的考试成绩数据，给出简洁实用的学习建议。每次给3-5条建议，每条不超过30字。'},{role:'user',content:JSON.stringify(d)}],max_tokens:500};}
-  else if(model==='gpt'){url='https://api.openai.com/v1/chat/completions';payload={model:'gpt-4o',messages:[{role:'system',content:'你是一位高中学习辅导专家。根据学生的考试成绩数据，给出简洁实用的学习建议。每次给3-5条建议，每条不超过30字。'},{role:'user',content:JSON.stringify(d)}],max_tokens:500};}
-  else if(model==='claude'){url='https://api.anthropic.com/v1/messages';payload={model:'claude-sonnet-4-20250514',max_tokens:500,system:'你是一位高中学习辅导专家。根据学生的考试成绩数据，给出简洁实用的学习建议。每次给3-5条建议，每条不超过30字。',messages:[{role:'user',content:JSON.stringify(d)}]};}
-  else if(model==='custom'){url=localStorage.getItem('sb_ai_custom_url')||'';var cm=localStorage.getItem('sb_ai_custom_model')||'gpt-3.5-turbo';payload={model:cm,messages:[{role:'system',content:'你是一位高中学习辅导专家。根据学生的考试成绩数据，给出简洁实用的学习建议。每次给3-5条建议，每条不超过30字。'},{role:'user',content:JSON.stringify(d)}],max_tokens:500};}
+  var sys={role:'system',content:'你是一位高中学习辅导专家。根据考试成绩给出简洁建议，3-5条，每条≤30字。'};
+  var usr={role:'user',content:JSON.stringify(d)};
+  var base={max_tokens:500};
+  if(model==='deepseek-v3'){url='https://api.deepseek.com/v1/chat/completions';payload={model:'deepseek-chat',messages:[sys,usr]};Object.assign(payload,base);}
+  else if(model==='deepseek-v4-flash'){url='https://api.deepseek.com/v1/chat/completions';payload={model:'deepseek-chat',messages:[sys,usr]};Object.assign(payload,base);}
+  else if(model==='qwen'){url='https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';payload={model:'qwen-plus',messages:[sys,usr]};Object.assign(payload,base);}
   if(!url){cb(generateAdvice(d));return;}
-  var headers={'Content-Type':'application/json'};
-  if(model==='claude'){headers['x-api-key']=key;headers['anthropic-version']='2023-06-01';}
-  else{headers['Authorization']='Bearer '+key;}
-  fetch(url,{method:'POST',headers:headers,body:JSON.stringify(payload)}).then(function(r){return r.json();}).then(function(j){
-    var txt='';
-    if(model==='claude'){txt=j.content&&j.content[0]?j.content[0].text:'';}
-    else{txt=j.choices&&j.choices[0]?j.choices[0].message.content:'';}
+  fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(payload)}).then(function(r){return r.json();}).then(function(j){
+    var txt=j.choices&&j.choices[0]?j.choices[0].message.content:'';
     if(txt)cb(txt.split('\n').filter(function(l){return l.trim();}));
     else cb(generateAdvice(d));
   }).catch(function(){cb(generateAdvice(d));});
@@ -1452,11 +1433,10 @@ function generateAdvice(d){
   var gs=localStorage.getItem('sb_goal_score');if(gs&&gs!=='0')document.getElementById('goalScore').value=gs;
   var gr=localStorage.getItem('sb_goal_rank');if(gr&&gr!=='0')document.getElementById('goalRank').value=gr;
   var ak=localStorage.getItem('sb_ai_key');if(ak)document.getElementById('aiKey').value=ak;
-  var am=localStorage.getItem('sb_ai_model');if(am)document.getElementById('aiModel').value=am;
-  var au=localStorage.getItem('sb_ai_custom_url');if(au)document.getElementById('aiCustomURL').value=au;
-  var acm=localStorage.getItem('sb_ai_custom_model');if(acm)document.getElementById('aiCustomModel').value=acm;
-  if(am==='custom')document.getElementById('aiCustomRow').style.display='block';
-  document.getElementById('aiModel').addEventListener('change',function(){document.getElementById('aiCustomRow').style.display=this.value==='custom'?'block':'none';});
+  var am=localStorage.getItem('sb_ai_model');if(am){
+    var opts=document.querySelectorAll('#aiModelPanel .hmos-dd-opt');
+    for(var i=0;i<opts.length;i++){if(opts[i].dataset.val===am)document.getElementById('aiModelLabel').textContent=opts[i].textContent;}
+  }
 })();
 
 </script>
