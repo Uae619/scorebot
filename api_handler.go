@@ -1097,19 +1097,9 @@ func handleAnswers(w http.ResponseWriter, r *http.Request) {
 	}})
 }
 
-// ---------- /api/answers/{file} (download) ----------
+// ---------- /api/answers/{file} (download, no auth) ----------
 func handleAnswerFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	qqid := strings.TrimSpace(r.URL.Query().Get("qqid"))
-	if qqid == "" {
-		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "缺少 qqid"})
-		return
-	}
-	userdata := opView(qqid)
-	if ok, _ := userdata["Return"].(bool); !ok {
-		writeJSON(w, http.StatusForbidden, apiResponse{Success: false, Error: "请先绑定账号"})
-		return
-	}
 	fname := strings.TrimPrefix(r.URL.Path, "/api/answers/")
 	if fname == "" || strings.Contains(fname, "/") || strings.Contains(fname, "\\") {
 		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "无效文件名"})
