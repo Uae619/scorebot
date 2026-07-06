@@ -1119,6 +1119,8 @@ func handleAnswerData(w http.ResponseWriter, r *http.Request) {
 		ct = "application/pdf"
 	} else if strings.HasSuffix(lc, ".md") {
 		ct = "text/markdown; charset=utf-8"
+	} else if strings.HasSuffix(lc, ".html") {
+		ct = "text/html; charset=utf-8"
 	}
 	// base64 编码后以 JSON 返回 — fetch() 不受 Content-Disposition 影响，前端构造 data URI
 	w.Header().Set("Cache-Control", "public, max-age=3600")

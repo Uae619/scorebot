@@ -645,7 +645,9 @@
   .ans-back-row { display:inline-flex; align-items:center; gap:4px; font-size:13px; color:var(--accent-from); cursor:pointer; margin-bottom:8px; font-weight:500; }
   .ans-viewer { width:100%; min-height:320px; border-radius:12px; overflow:hidden; background:var(--bg-surface); }
   .ans-viewer iframe { width:100%; height:62vh; max-height:520px; border:none; display:block; }
-  .ans-viewer .ans-md { padding:16px 18px; font-size:14px; line-height:2.0; white-space:pre-wrap; color:var(--text-primary); word-break:break-word; }
+  .ans-viewer .ans-md { padding:16px 18px; font-size:14px; line-height:2.0; white-space:pre-line; color:var(--text-primary); word-break:break-word; }
+  .ans-viewer .ans-md p { margin:4px 0; }
+  .ans-viewer .ans-md b { font-weight:700; }
   .ans-md-click { cursor:pointer; border-radius:12px; transition:opacity var(--dur-short); }
   .ans-md-click:active { opacity:.65; }
   .ans-full-hint { font-size:11px; color:var(--text-tertiary); text-align:center; margin-top:6px; }
@@ -923,11 +925,11 @@ function egg(){
   hp('light');
 }
 
-// ---- 答案查看器（fetch JSON → data URI，绕过 FC Content-Disposition，像答题卡展示）----
+// ---- 答案查看器（HTML/MD 内联渲染，像答题卡展示）----
 var _ansData=[
-  {name:'历史答案',file:'%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
-  {name:'政治答案',file:'%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
-  {name:'物理答案',file:'%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
+  {name:'历史答案',file:'%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.html',type:'文档'},
+  {name:'政治答案',file:'%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.html',type:'文档'},
+  {name:'物理答案',file:'%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.html',type:'文档'},
   {name:'语文客观题答案',file:'',type:'文本',md:'1-2 BD\n6-7 BD\n10 BEG\n11-12 AB\n15 C\n18-19 CC\n20-21 AC\n23 A'}
 ];
 var _ansCur='';
@@ -950,33 +952,34 @@ function showAnswer(idx){
   var a=_ansData[idx];
   var c=document.getElementById('ansContent');
   document.getElementById('ansTitle').textContent=a.name;
-  if(a.type==='PDF'){
-    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" style="display:flex;align-items:center;justify-content:center;min-height:320px;"><span style="color:var(--text-tertiary);font-size:13px;">加载中...</span></div>';
-    // 通过 JSON API 获取 base64 → 构造 data URI → FC Content-Disposition 完全绕开
+  if(a.type==='文档'){
+    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer ans-md-click" style="min-height:200px;display:flex;align-items:center;justify-content:center;"><span style="color:var(--text-tertiary);font-size:13px;">加载中...</span></div>';
     var jsonUrl=(API||'')+'/api/answers-json/'+a.file;
     fetch(jsonUrl).then(function(r){return r.json();}).then(function(j){
       if(!j||!j.data){c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><p style="color:#dc2626;font-size:13px;text-align:center;padding:40px 0;">答案数据为空</p>';return;}
-      var dataUri='data:'+j.type+';base64,'+j.data;
-      _ansCur=dataUri;
-      c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" onclick="viewAnsFull()"><iframe src="'+ea(dataUri)+'#toolbar=0&navpanes=0" style="min-height:60vh;max-height:520px;cursor:pointer;width:100%;border:none;" onload="this.style.opacity=\'1\';" onerror="this.parentElement.innerHTML=\'<p style=color:#dc2626;font-size:13px;text-align:center;padding:40px 0;>PDF 加载失败</p>\'"></iframe></div><p class="ans-full-hint">点击 PDF 放大查看（点击空白处退出）</p>';
+      // 从 base64 解码 HTML，提取 body 内容内联渲染（保留格式：加粗、换行等）
+      var html=atob(j.data);
+      var bodyMatch=html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+      var body=bodyMatch?bodyMatch[1]:html;
+      _ansCur=body;
+      c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer ans-md-click" onclick="viewAnsFullText()"><div class="ans-md">'+body+'</div></div><p class="ans-full-hint">点击文本放大查看（点击空白处退出）</p>';
     }).catch(function(){
       c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><p style="color:#dc2626;font-size:13px;text-align:center;padding:40px 0;">加载失败，请检查网络后重试</p>';
     });
   }else{
-    _ansCur='';
+    _ansCur=esc(a.md);
     c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer ans-md-click" onclick="viewAnsFullText()"><div class="ans-md">'+esc(a.md)+'</div></div><p class="ans-full-hint">点击文本放大查看（点击空白处退出）</p>';
   }
 }
 
 function viewAnsFull(){
-  if(!_ansCur) return;
-  document.getElementById('ansFullFrame').src=_ansCur+'#toolbar=0&navpanes=0';
-  document.getElementById('ansFullOverlay').style.display='block';
+  // 文档类型 — 用全屏文本查看
+  viewAnsFullText();
 }
 
 function viewAnsFullText(){
-  var t=_ansData[3].md;
-  document.getElementById('ansFullOverlay').innerHTML='<div style="position:absolute;top:40px;left:8px;right:8px;bottom:40px;background:var(--glass-bg);border-radius:24px;box-shadow:0 16px 56px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.04);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--glass-border);" onclick="event.stopPropagation()"><div style="flex:1;overflow-y:auto;padding:24px 20px;-webkit-overflow-scrolling:touch;"><pre style="white-space:pre-wrap;word-break:break-word;font-size:16px;line-height:2.0;color:var(--text-primary);font-family:inherit;margin:0;">'+esc(t)+'</pre></div><div style="padding:8px;text-align:center;"><span style="font-size:12px;color:var(--text-tertiary);">点击空白区域退出</span></div></div>';
+  var body=_ansCur||'';
+  document.getElementById('ansFullOverlay').innerHTML='<div style="position:absolute;top:40px;left:8px;right:8px;bottom:40px;background:var(--glass-bg);border-radius:24px;box-shadow:0 16px 56px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.04);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--glass-border);" onclick="event.stopPropagation()"><div style="flex:1;overflow-y:auto;padding:24px 20px;-webkit-overflow-scrolling:touch;font-size:15px;line-height:2.0;color:var(--text-primary);">'+body+'</div><div style="padding:8px;text-align:center;"><span style="font-size:12px;color:var(--text-tertiary);">点击空白区域退出</span></div></div>';
   document.getElementById('ansFullOverlay').style.display='block';
   document.getElementById('ansFullOverlay').onclick=closeAnsFull;
 }
