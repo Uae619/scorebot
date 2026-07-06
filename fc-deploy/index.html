@@ -157,7 +157,7 @@
     background: var(--bg-surface);
   }
   #bg { position:fixed; inset:0; z-index:0; pointer-events:none; width:100%; height:100%; }
-  .app { width:100%; max-width:480px; min-height:100dvh; display:flex; flex-direction:column; position:relative; z-index:1; contain: layout style; }
+  .app { width:100%; max-width:480px; min-height:100dvh; display:flex; flex-direction:column; position:relative; z-index:1; contain: layout style paint; }
 
   /* ---- HEADER ---- */
   .header {
@@ -618,6 +618,11 @@
     box-shadow: 0 4px 20px rgba(239,68,68,0.15), 0 1px 0 rgba(255,255,255,0.18) inset;
   }
 
+  /* ---- GPU 优化：提前提升合成层 ---- */
+  .header, .card, .detail, .sheet, .exam, .overlay, .btn-full, .seg {
+    will-change: transform; transform: translateZ(0);
+  }
+
   /* ---- RESPONSIVE ---- */
   @media (max-width: 380px) {
     .header h1 { font-size:22px; } .sh .big { font-size:32px; }
@@ -655,7 +660,7 @@
   .ans-full-hint { font-size:11px; color:var(--text-tertiary); text-align:center; margin-top:6px; }
   #ansFullOverlay { backdrop-filter: blur(10px) saturate(0.8) !important; -webkit-backdrop-filter: blur(10px) saturate(0.8) !important; }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 </head>
 <body>
 <canvas id="bg"></canvas>
@@ -903,7 +908,7 @@ function togDark(){
 
 // -- header glass on scroll --
 var header=document.getElementById('header');
-window.addEventListener('scroll',function(){ header.classList.toggle('scrolled',window.scrollY>20); });
+window.addEventListener('scroll',function(){ header.classList.toggle('scrolled',window.scrollY>20); },{passive:true});
 
 // -- touch ripple (HarmonyOS 光晕扩散) --
 document.addEventListener('touchstart',function(e){
@@ -916,7 +921,7 @@ document.addEventListener('touchstart',function(e){
   ripple.className='hmos-ripple';
   ripple.style.left=x+'px'; ripple.style.top=y+'px';
   if(!el.style.position||el.style.position==='static') el.style.position='relative';
-  if(getComputedStyle(el).overflow==='visible') el.style.overflow='hidden';
+  el.style.overflow='hidden';
   el.appendChild(ripple);
   ripple.addEventListener('animationend',function(){ ripple.remove(); });
 },{passive:true});
@@ -1576,24 +1581,36 @@ function generateAdvice(d){
 
 </script>
 <script>
-// --- 银河粒子 (深色模式专属，延迟加载) ---
+// --- 银河粒子 (深色模式专属，延迟加载，30fps节能) ---
 setTimeout(function(){
 (function(){'use strict';
 var c=document.getElementById('bg'),x=c.getContext('2d');
-var W,H,dpr=1,run=true,stars=[],visible=false;
-function rs(s){return Math.abs(Math.sin(s*3187.917)*43758.5453)%1}
-function ac(){var s=getComputedStyle(document.documentElement);return(s.getPropertyValue('--accent-rgb')||'124,77,255').trim().split(',').map(Number)}
+var W,H,dpr=1,run=true,stars=[],visible=false,frame=0;
+var _ac=[124,77,255],_grad=null,_gw=0,_gh=0;
+function rs(s){var t=Math.sin(s*3187.917)*43758.5453;return t-Math.floor(t)}
+function ac(){
+  var s=getComputedStyle(document.documentElement);
+  return(s.getPropertyValue('--accent-rgb')||'124,77,255').trim().split(',').map(Number)
+}
 function chk(){
   var dk=document.documentElement.matches('[data-dark="true"]')||(!document.documentElement.getAttribute('data-dark')&&matchMedia('(prefers-color-scheme:dark)').matches);
   visible=dk;c.style.opacity=dk?'1':'0';
+  if(dk) _ac=ac();
 }
-
+function mkGrad(w,h){
+  if(_grad&&_gw===w&&_gh===h)return;
+  _gw=w;_gh=h;var cx=w*.5,cy=h*.44,r=Math.max(w,h)*.4;
+  _grad=x.createRadialGradient(cx,cy,0,cx,cy,r);
+  _grad.addColorStop(0,'rgba('+_ac[0]+','+_ac[1]+','+_ac[2]+',.09)');
+  _grad.addColorStop(.3,'rgba('+_ac[0]+','+_ac[1]+','+_ac[2]+',.05)');
+  _grad.addColorStop(.7,'rgba('+_ac[0]+','+_ac[1]+','+_ac[2]+',.01)');
+  _grad.addColorStop(1,'rgba(0,0,0,0)');
+}
 function init(){
-  var cnt=Math.min(420,Math.max(200,Math.round(innerWidth*innerHeight/4000)));
+  var cnt=Math.min(380,Math.max(180,Math.round(innerWidth*innerHeight/5000)));
   stars=[];var n=0;
   for(var i=0;i<cnt;i++){
-    var bx=rs(n*13.1)*innerWidth,by=rs(n*29.3)*innerHeight;
-    stars.push({bx:bx,by:by,x:bx,y:by,sz:.12+rs(n*23.7)*.45,ph:rs(n*31.1)*Math.PI*2,sp:.4+rs(n*41.3)*.5,ly:rs(n*89.1),dr:rs(n*55.3)*Math.PI*2,ds:.04+rs(n*61.7)*.1});
+    stars.push({bx:rs(n*13.1)*innerWidth,by:rs(n*29.3)*innerHeight,x:0,y:0,sz:.12+rs(n*23.7)*.35,ph:rs(n*31.1)*Math.PI*2,sp:.4+rs(n*41.3)*.5,ly:rs(n*89.1),dr:rs(n*55.3)*Math.PI*2,ds:.04+rs(n*61.7)*.1});
     n++;
   }
 }
@@ -1601,48 +1618,40 @@ function resize(){
   dpr=Math.min(1.5,Math.max(1,window.devicePixelRatio||1));
   W=Math.max(1,Math.floor(innerWidth*dpr));H=Math.max(1,Math.floor(innerHeight*dpr));
   c.width=W;c.height=H;c.style.width=innerWidth+'px';c.style.height=innerHeight+'px';
-  x.setTransform(dpr,0,0,dpr,0,0);init()
+  x.setTransform(dpr,0,0,dpr,0,0);_grad=null;init()
 }
 function draw(t){
   if(!run){requestAnimationFrame(draw);return}
+  // 30fps 节能：每隔一帧绘制
+  frame++;if(frame%2){requestAnimationFrame(draw);return}
+  if(!visible){requestAnimationFrame(draw);return}
   var n=t*.001;
   x.clearRect(0,0,innerWidth,innerHeight);
-  if(!visible){requestAnimationFrame(draw);return}
-  x.save();
-  // 银河核心光晕
-  var a=ac(),cx=innerWidth*.5,cy=innerHeight*.44;
-  var g=x.createRadialGradient(cx,cy,0,cx,cy,Math.max(innerWidth,innerHeight)*.4);
-  g.addColorStop(0,'rgba('+a[0]+','+a[1]+','+a[2]+',.09)');
-  g.addColorStop(.3,'rgba('+a[0]+','+a[1]+','+a[2]+',.05)');
-  g.addColorStop(.7,'rgba('+a[0]+','+a[1]+','+a[2]+',.01)');
-  g.addColorStop(1,'rgba(0,0,0,0)');
-  x.fillStyle=g;x.fillRect(0,0,innerWidth,innerHeight);
-
+  mkGrad(innerWidth,innerHeight);
+  x.fillStyle=_grad;x.fillRect(0,0,innerWidth,innerHeight);
   x.globalCompositeOperation='lighter';
+  var a=_ac;
   for(var i=0;i<stars.length;i++){
     var s=stars[i];
-    s.x=s.bx+Math.cos(n*s.dr)*s.ds*20;
-    s.y=s.by+Math.sin(n*s.dr*1.3)*s.ds*16;
-    var tw=.3+.7*(.5+.5*Math.sin(n*s.sp+s.ph));
-    var sz=Math.max(.3,s.sz*tw);
-    var al=(.4+s.ly*.5)*tw;
-    if(sz<.2)continue;
-    x.globalAlpha=Math.min(.7,al*.85);
-    x.fillStyle=sz>.4?'rgba(255,255,255,.65)':'rgba('+a[0]+','+a[1]+','+a[2]+',.5)';
-    x.beginPath();x.arc(s.x,s.y,sz,0,Math.PI*2);x.fill();
+    s.x=s.bx+Math.cos(n*s.dr)*s.ds*18;
+    s.y=s.by+Math.sin(n*s.dr*1.3)*s.ds*14;
+    var tw=.35+.65*(.5+.5*Math.sin(n*s.sp+s.ph));
+    var sz=s.sz*tw;if(sz<.16)continue;
+    x.globalAlpha=Math.min(.65,(.38+s.ly*.48)*tw);
+    x.fillStyle=sz>.35?'rgba(255,255,255,.6)':'rgba('+a[0]+','+a[1]+','+a[2]+',.45)';
+    x.beginPath();x.arc(s.x,s.y,Math.max(.16,sz),0,Math.PI*2);x.fill();
   }
-  x.restore();
+  x.globalCompositeOperation='source-over';
   requestAnimationFrame(draw)
 }
-chk();
-// 监听 dark 模式切换
-var obs=new MutationObserver(chk);
+chk();_ac=ac();
+var obs=new MutationObserver(function(){chk();_ac=ac();_grad=null;});
 obs.observe(document.documentElement,{attributes:true,attributeFilter:['data-dark']});
-matchMedia('(prefers-color-scheme:dark)').addEventListener('change',chk);
-window.addEventListener('resize',resize);
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(){chk();_ac=ac();_grad=null;});
+window.addEventListener('resize',resize,{passive:true});
 document.addEventListener('visibilitychange',function(){run=!document.hidden;if(run)requestAnimationFrame(draw)});
 resize();requestAnimationFrame(draw);
-})();}, 400);
+})();}, 500);
 </script>
 </body>
 </html>
