@@ -1001,7 +1001,13 @@ function build(d,qqid){
       h+='<div class="dw" style="display:none;"></div>';
     }
   }else h+='<div class="empty"><div class="ic">&#128531;</div><p>暂无考试记录</p></div>';
-  h+='<div class="card" style="padding:12px;margin-top:8px;cursor:pointer;" onclick="openAnswers(\''+ea(qqid)+'\')"><div style="font-size:13px;font-weight:600;">查看高二期末考答案</div><div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">历史 · 政治 · 物理 · 语文客观题</div></div>';
+  h+='<div class="card" style="padding:14px;margin-top:8px;"><div style="font-size:13px;font-weight:600;margin-bottom:8px;">高二期末考答案</div>'
+    +'<div style="font-size:12px;line-height:2;">'
+    +'<a href="'+API+'/api/answers/历史答案.pdf?qqid='+encodeURIComponent(qqid)+'" target="_blank" style="color:var(--accent-from);text-decoration:none;">历史答案.pdf</a> &middot; '
+    +'<a href="'+API+'/api/answers/政治答案.pdf?qqid='+encodeURIComponent(qqid)+'" target="_blank" style="color:var(--accent-from);text-decoration:none;">政治答案.pdf</a> &middot; '
+    +'<a href="'+API+'/api/answers/物理答案.pdf?qqid='+encodeURIComponent(qqid)+'" target="_blank" style="color:var(--accent-from);text-decoration:none;">物理答案.pdf</a> &middot; '
+    +'<a href="'+API+'/api/answers/语文客观题答案.md?qqid='+encodeURIComponent(qqid)+'" target="_blank" style="color:var(--accent-from);text-decoration:none;">语文客观题</a>'
+    +'</div></div>';
   return h;
 }
 
@@ -1209,23 +1215,6 @@ _iv.addEventListener('touchend',function(e){
     }
   }
 });
-
-// ---- 答案下载 ----
-function openAnswers(qqid){
-  document.getElementById('answersModal').style.display='flex';
-  var el=document.getElementById('answersContent');
-  el.innerHTML='加载中...';
-  fetch(API+'/api/answers?qqid='+qqid).then(function(r){return r.json();}).then(function(d){
-    if(!d.success){el.innerHTML='<p style="color:var(--text-tertiary);text-align:center;padding:20px;">请先绑定账号后查看</p>';return;}
-    var h='';
-    for(var i=0;i<d.data.files.length;i++){
-      var f=d.data.files[i],url=API+'/api/answers/'+encodeURIComponent(f.name)+'?qqid='+encodeURIComponent(qqid);
-      h+='<div style="padding:10px 0;border-bottom:1px solid var(--hairline);display:flex;justify-content:space-between;align-items:center;"><div><span style="font-weight:600;">'+esc(f.name)+'</span><span style="font-size:11px;color:var(--text-tertiary);margin-left:8px;">'+(Math.round(f.size/1024))+' KB</span></div><a href="'+url+'" target="_blank" style="color:var(--accent-from);font-weight:600;text-decoration:none;">下载</a></div>';
-    }
-    el.innerHTML=h||'<p style="text-align:center;padding:20px;">暂无答案</p>';
-  }).catch(function(){el.innerHTML='<p style="color:#dc2626;text-align:center;padding:20px;">加载失败</p>';});
-}
-function closeAnswers(){document.getElementById('answersModal').style.display='none';}
 
 // ---- 考试历史 ----
 function saveExam(d){
