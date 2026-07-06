@@ -1112,23 +1112,35 @@ func handleAnswerData(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, apiResponse{Success: false, Error: "文件不存在"})
 		return
 	}
-	// 根据扩展名返回 content-type
+	// 根据扩展名返回 content-type，文本类直接返回原始内容（非 base64）
 	ct := "application/octet-stream"
+	isText := false
 	lc := strings.ToLower(fname)
 	if strings.HasSuffix(lc, ".pdf") {
 		ct = "application/pdf"
 	} else if strings.HasSuffix(lc, ".md") {
 		ct = "text/markdown; charset=utf-8"
+		isText = true
 	} else if strings.HasSuffix(lc, ".html") {
 		ct = "text/html; charset=utf-8"
+		isText = true
 	}
-	// base64 编码后以 JSON 返回 — fetch() 不受 Content-Disposition 影响，前端构造 data URI
 	w.Header().Set("Cache-Control", "public, max-age=3600")
-	json.NewEncoder(w).Encode(map[string]string{
-		"type": ct,
-		"name": fname,
-		"data": base64.StdEncoding.EncodeToString(data),
-	})
+	if isText {
+		// 文本内容直接返回原始字符串，避免 base64→atob 中文乱码
+		json.NewEncoder(w).Encode(map[string]string{
+			"type": ct,
+			"name": fname,
+			"text": string(data),
+		})
+	} else {
+		// 二进制文件 base64 编码
+		json.NewEncoder(w).Encode(map[string]string{
+			"type": ct,
+			"name": fname,
+			"data": base64.StdEncoding.EncodeToString(data),
+		})
+	}
 }
 
 // ---------- /api/answers/{file} (无需认证) ----------

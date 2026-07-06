@@ -956,9 +956,10 @@ function showAnswer(idx){
     c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer ans-md-click" style="min-height:200px;display:flex;align-items:center;justify-content:center;"><span style="color:var(--text-tertiary);font-size:13px;">加载中...</span></div>';
     var jsonUrl=(API||'')+'/api/answers-json/'+a.file;
     fetch(jsonUrl).then(function(r){return r.json();}).then(function(j){
-      if(!j||!j.data){c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><p style="color:#dc2626;font-size:13px;text-align:center;padding:40px 0;">答案数据为空</p>';return;}
-      // 从 base64 解码 HTML，提取 body 内容内联渲染（保留格式：加粗、换行等）
-      var html=atob(j.data);
+      if(!j||(!j.text&&!j.data)){c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><p style="color:#dc2626;font-size:13px;text-align:center;padding:40px 0;">答案数据为空</p>';return;}
+      // HTML 文本直接返回原始内容（非 base64），提取 body 内联渲染
+      var html=j.text||'';
+      if(!html&&j.data){ html=atob(j.data); } // PDF fallback
       var bodyMatch=html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
       var body=bodyMatch?bodyMatch[1]:html;
       _ansCur=body;
