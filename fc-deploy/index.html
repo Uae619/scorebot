@@ -787,12 +787,13 @@
       </div>
     </div>
 
+    <div class="srow2" id="updateRow" style="display:none;cursor:pointer;" onclick="checkUpdate()"><div><div class="sl">检查更新</div><div class="sd">查看是否有新版本可用</div></div></div>
     <div class="srow2" onclick="egg()" style="cursor:pointer;"><div><div class="sl">彩蛋</div><div class="sd">点开有惊喜</div></div></div>
     <div id="eggBox" style="display:none;text-align:center;padding:10px 0 6px;">
       <img src="" id="eggGif" style="max-width:100%;max-height:160px;border-radius:16px;" alt="丑橘">
       <p style="color:var(--text-secondary);font-size:13px;font-weight:600;margin-top:6px;">丑橘…不丑…</p>
     </div>
-    <div class="srow2"><div><div class="sl">版本</div><div class="sd">ScoreBot 3.1</div></div><span style="color:var(--text-tertiary);">3.1</span></div>
+    <div class="srow2"><div><div class="sl">版本</div><div class="sd" id="verLabel">查分独立版 v1.0.0</div></div><span style="color:var(--text-tertiary);" id="verTag">1.0.0</span></div>
     <div style="text-align:center;color:var(--text-tertiary);font-size:11px;padding:12px 0 4px;">免责声明：本工具仅用于个人学习成绩查询<br>数据来源于好分数/七天网络官方接口</div>
     </div>
   </div>
@@ -926,7 +927,15 @@ document.addEventListener('touchstart',function(e){
   ripple.addEventListener('animationend',function(){ ripple.remove(); });
 },{passive:true});
 
-function openSettings(){ document.getElementById('modal').classList.add('on'); hp('light'); }
+function openSettings(){ document.getElementById('modal').classList.add('on'); hp('light');
+  // App 模式显示检查更新
+  if(window._isApp){ document.getElementById('updateRow').style.display='flex'; }
+}
+function checkUpdate(){
+  if(window._updater&&window._updater.checkUpdate){ window._updater.checkUpdate(); }
+  else if(window._isApp){ toast('更新功能暂不可用',null,1500); }
+  else{ toast('请使用查分 App',null,1500); }
+}
 function egg(){
   var box=document.getElementById('eggBox');
   var gif=document.getElementById('eggGif');
@@ -968,39 +977,37 @@ function showAnswer(idx){
   var c=document.getElementById('ansContent');
   document.getElementById('ansTitle').textContent=a.name;
   c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div id="ansPdfPages" style="display:flex;flex-direction:column;gap:6px;"><div style="text-align:center;padding:60px 0;color:var(--text-tertiary);font-size:13px;">加载中...</div></div><p class="ans-full-hint">点击图片放大查看（点击空白处退出）</p>';
-  // fetch PDF → PDF.js 渲染所有页到 canvas
-  var pdfUrl=(API||'')+'/api/answers/'+a.file;
-  fetch(pdfUrl).then(function(r){return r.arrayBuffer();}).then(function(buf){
-    if(typeof pdfjsLib==='undefined'){
-      var pages=document.getElementById('ansPdfPages'); if(pages) pages.innerHTML='<p style="color:#dc2626;text-align:center;padding:40px 0;">PDF 组件加载失败，请刷新重试</p>'; return;
-    }
-    return pdfjsLib.getDocument({data:buf}).promise;
-  }).then(function(pdf){
-    if(!pdf) return;
-    var pages=document.getElementById('ansPdfPages'); if(!pages) return;
-    pages.innerHTML='';
-    var scale=Math.min(1.8, window.devicePixelRatio||1);
-    function renderPage(n){
-      if(n>pdf.numPages) return;
-      pdf.getPage(n).then(function(page){
-        var vp=page.getViewport({scale:scale});
-        var canvas=document.createElement('canvas');
-        canvas.width=vp.width; canvas.height=vp.height;
-        canvas.style.cssText='width:100%;height:auto;display:block;cursor:pointer;border-radius:12px;';
-        canvas.onclick=function(){viewFull(canvas.toDataURL('image/png'));};
-        var wrap=document.createElement('div');
-        wrap.style.cssText='margin-bottom:6px;';
-        wrap.innerHTML='<div style="font-size:11px;color:var(--text-tertiary);text-align:center;padding:2px 0 4px;">第 '+n+' 页 / 共 '+pdf.numPages+' 页</div>';
-        wrap.appendChild(canvas);
-        pages.appendChild(wrap);
-        page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise.then(function(){
-          renderPage(n+1);
+
+  function renderPdf(buf){
+    if(typeof pdfjsLib==='undefined'){var p=document.getElementById('ansPdfPages');if(p)p.innerHTML='<p style="color:#dc2626;text-align:center;padding:40px 0;">PDF 组件加载失败</p>';return;}
+    pdfjsLib.getDocument({data:buf}).promise.then(function(pdf){
+      if(!pdf)return;
+      var pages=document.getElementById('ansPdfPages');if(!pages)return;
+      pages.innerHTML='';
+      var scale=Math.min(1.8,window.devicePixelRatio||1);
+      (function renderPage(n){
+        if(n>pdf.numPages)return;
+        pdf.getPage(n).then(function(page){
+          var vp=page.getViewport({scale:scale});
+          var canvas=document.createElement('canvas');
+          canvas.width=vp.width;canvas.height=vp.height;
+          canvas.style.cssText='width:100%;height:auto;display:block;cursor:pointer;border-radius:12px;';
+          canvas.onclick=function(){viewFull(canvas.toDataURL('image/png'));};
+          var wrap=document.createElement('div');wrap.style.cssText='margin-bottom:6px;';
+          wrap.innerHTML='<div style="font-size:11px;color:var(--text-tertiary);text-align:center;padding:2px 0 4px;">第 '+n+' 页 / 共 '+pdf.numPages+' 页</div>';
+          wrap.appendChild(canvas);pages.appendChild(wrap);
+          page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise.then(function(){renderPage(n+1);});
         });
-      });
-    }
-    renderPage(1);
-  }).catch(function(){
-    var pages=document.getElementById('ansPdfPages'); if(pages) pages.innerHTML='<p style="color:#dc2626;text-align:center;padding:40px 0;">加载失败，请检查网络后重试</p>';
+      })(1);
+    }).catch(function(){
+      var p=document.getElementById('ansPdfPages');if(p)p.innerHTML='<p style="color:#dc2626;text-align:center;padding:40px 0;">加载失败，请检查网络后重试</p>';
+    });
+  }
+
+  // fetch PDF → PDF.js 渲染（App 和网页同一逻辑，fetch 直接到 FC 后端）
+  var pdfUrl=(API||'')+'/api/answers/'+a.file;
+  fetch(pdfUrl).then(function(r){return r.arrayBuffer();}).then(renderPdf).catch(function(){
+    var p=document.getElementById('ansPdfPages');if(p)p.innerHTML='<p style="color:#dc2626;text-align:center;padding:40px 0;">加载失败，请检查网络后重试</p>';
   });
 }
 
