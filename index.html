@@ -447,14 +447,15 @@
   .overlay.on { display:flex; animation: overlayOn var(--dur-short) var(--hmos-decelerate); }
   @keyframes overlayOn { from{opacity:0} to{opacity:1} }
   .sheet {
-    width:100%; max-width:480px; position:relative; overflow-y:auto; overflow-x:hidden;
-    max-height:88vh; -webkit-overflow-scrolling:touch;
+    width:100%; max-width:480px; position:relative; overflow:hidden;
+    max-height:85vh; display:flex; flex-direction:column;
     background: var(--glass-bg); backdrop-filter: blur(16px) saturate(1.6); -webkit-backdrop-filter: blur(16px) saturate(1.6);
-    border-radius: var(--r-sheet); padding:4px 22px 26px;
+    border-radius: var(--r-sheet); padding:4px 22px 14px;
     border: 1px solid var(--glass-border); border-bottom: none;
     box-shadow: 0 -4px 24px rgba(0,0,0,0.06), 0 -1px 0 rgba(var(--accent-rgb),0.04);
     animation: shUp .42s var(--hmos-emphasized);
   }
+  .sheet-body { flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; min-height:0; }
   /* 顶部折射光 */
   .sheet::after {
     content:''; position:absolute; top:0; left:40px; right:40px; height:1px;
@@ -738,7 +739,7 @@
 <div class="overlay" id="ansOverlay" onclick="closeAns(event)">
   <div class="sheet" onclick="event.stopPropagation()">
     <h2 id="ansTitle">参考答案</h2>
-    <div id="ansContent"></div>
+    <div class="sheet-body" id="ansContent"></div>
   </div>
 </div>
 
@@ -754,6 +755,7 @@
 <div class="overlay" id="modal" onclick="closeSettings(event)">
   <div class="sheet" onclick="event.stopPropagation()">
     <h2>设置</h2>
+    <div class="sheet-body">
     <div class="srow2"><div><div class="sl">触感反馈</div><div class="sd">点击按钮时手机轻微震动</div></div><button class="tgl" id="vibBtn" onclick="togVib()"></button></div>
 
     <div class="srow2"><div><div class="sl">主题颜色</div><div class="sd">切换界面强调色</div></div>
@@ -787,6 +789,7 @@
     </div>
     <div class="srow2"><div><div class="sl">版本</div><div class="sd">ScoreBot 3.1</div></div><span style="color:var(--text-tertiary);">3.1</span></div>
     <div style="text-align:center;color:var(--text-tertiary);font-size:11px;padding:12px 0 4px;">免责声明：本工具仅用于个人学习成绩查询<br>数据来源于好分数/七天网络官方接口</div>
+    </div>
   </div>
 </div>
 
