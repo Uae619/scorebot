@@ -1213,17 +1213,17 @@ _iv.addEventListener('touchend',function(e){
 // ---- 答案下载 ----
 function openAnswers(qqid){
   document.getElementById('answersModal').style.display='flex';
-  document.getElementById('answersContent').innerHTML='加载中...';
+  var el=document.getElementById('answersContent');
+  el.innerHTML='加载中...';
   fetch(API+'/api/answers?qqid='+qqid).then(function(r){return r.json();}).then(function(d){
-    var el=document.getElementById('answersContent');
     if(!d.success){el.innerHTML='<p style="color:var(--text-tertiary);text-align:center;padding:20px;">请先绑定账号后查看</p>';return;}
     var h='';
     for(var i=0;i<d.data.files.length;i++){
-      var f=d.data.files[i];
-      h+='<div class="srow2" style="cursor:pointer;" onclick="window.open(\''+API+'/api/answers/'+encodeURIComponent(f.name)+'?qqid='+qqid+'\')"><div><div class="sl">'+esc(f.name)+'</div><div class="sd">'+(Math.round(f.size/1024))+' KB</div></div><span style="color:var(--accent-from);font-weight:600;">查看</span></div>';
+      var f=d.data.files[i],url=API+'/api/answers/'+encodeURIComponent(f.name)+'?qqid='+encodeURIComponent(qqid);
+      h+='<div style="padding:10px 0;border-bottom:1px solid var(--hairline);display:flex;justify-content:space-between;align-items:center;"><div><span style="font-weight:600;">'+esc(f.name)+'</span><span style="font-size:11px;color:var(--text-tertiary);margin-left:8px;">'+(Math.round(f.size/1024))+' KB</span></div><a href="'+url+'" target="_blank" style="color:var(--accent-from);font-weight:600;text-decoration:none;">下载</a></div>';
     }
     el.innerHTML=h||'<p style="text-align:center;padding:20px;">暂无答案</p>';
-  }).catch(function(){document.getElementById('answersContent').innerHTML='<p style="color:#dc2626;text-align:center;padding:20px;">加载失败</p>';});
+  }).catch(function(){el.innerHTML='<p style="color:#dc2626;text-align:center;padding:20px;">加载失败</p>';});
 }
 function closeAnswers(){document.getElementById('answersModal').style.display='none';}
 

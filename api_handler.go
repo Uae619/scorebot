@@ -1127,7 +1127,7 @@ func handleAnswerFile(w http.ResponseWriter, r *http.Request) {
 		ct = "text/markdown; charset=utf-8"
 	}
 	w.Header().Set("Content-Type", ct)
-	w.Header().Set("Content-Disposition", "inline; filename=\""+fname+"\"")
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+fname+"\"")
 	w.Write(data)
 }
 
