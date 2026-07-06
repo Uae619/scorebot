@@ -925,11 +925,11 @@ function egg(){
   hp('light');
 }
 
-// ---- 答案查看器（HTML/MD 内联渲染，像答题卡展示）----
+// ---- 答案查看器（PDF用 base64 data URI 内联显示，绕过 FC Content-Disposition）----
 var _ansData=[
-  {name:'历史答案',file:'%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.html',type:'文档'},
-  {name:'政治答案',file:'%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.html',type:'文档'},
-  {name:'物理答案',file:'%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.html',type:'文档'},
+  {name:'历史答案',file:'%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
+  {name:'政治答案',file:'%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
+  {name:'物理答案',file:'%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
   {name:'语文客观题答案',file:'',type:'文本',md:'1-2 BD\n6-7 BD\n10 BEG\n11-12 AB\n15 C\n18-19 CC\n20-21 AC\n23 A'}
 ];
 var _ansCur='';
@@ -952,18 +952,15 @@ function showAnswer(idx){
   var a=_ansData[idx];
   var c=document.getElementById('ansContent');
   document.getElementById('ansTitle').textContent=a.name;
-  if(a.type==='文档'){
-    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer ans-md-click" style="min-height:200px;display:flex;align-items:center;justify-content:center;"><span style="color:var(--text-tertiary);font-size:13px;">加载中...</span></div>';
+  if(a.type==='PDF'){
+    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" style="display:flex;align-items:center;justify-content:center;min-height:320px;"><span style="color:var(--text-tertiary);font-size:13px;">加载中...</span></div>';
     var jsonUrl=(API||'')+'/api/answers-json/'+a.file;
     fetch(jsonUrl).then(function(r){return r.json();}).then(function(j){
-      if(!j||(!j.text&&!j.data)){c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><p style="color:#dc2626;font-size:13px;text-align:center;padding:40px 0;">答案数据为空</p>';return;}
-      // HTML 文本直接返回原始内容（非 base64），提取 body 内联渲染
-      var html=j.text||'';
-      if(!html&&j.data){ html=atob(j.data); } // PDF fallback
-      var bodyMatch=html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-      var body=bodyMatch?bodyMatch[1]:html;
-      _ansCur=body;
-      c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer ans-md-click" onclick="viewAnsFullText()"><div class="ans-md">'+body+'</div></div><p class="ans-full-hint">点击文本放大查看（点击空白处退出）</p>';
+      if(!j||!j.data){c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><p style="color:#dc2626;font-size:13px;text-align:center;padding:40px 0;">答案数据为空</p>';return;}
+      // base64 字符串直接从 JSON 取，拼 data URI，无需 atob()
+      var dataUri='data:'+j.type+';base64,'+j.data;
+      _ansCur=dataUri;
+      c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" onclick="viewAnsFull()"><iframe src="'+ea(dataUri)+'#toolbar=0&navpanes=0" style="min-height:60vh;max-height:520px;cursor:pointer;width:100%;border:none;"></iframe></div><p class="ans-full-hint">点击 PDF 放大查看（点击空白处退出）</p>';
     }).catch(function(){
       c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><p style="color:#dc2626;font-size:13px;text-align:center;padding:40px 0;">加载失败，请检查网络后重试</p>';
     });
@@ -974,13 +971,14 @@ function showAnswer(idx){
 }
 
 function viewAnsFull(){
-  // 文档类型 — 用全屏文本查看
-  viewAnsFullText();
+  if(!_ansCur) return;
+  document.getElementById('ansFullFrame').src=_ansCur+'#toolbar=0&navpanes=0';
+  document.getElementById('ansFullOverlay').style.display='block';
 }
 
 function viewAnsFullText(){
   var body=_ansCur||'';
-  document.getElementById('ansFullOverlay').innerHTML='<div style="position:absolute;top:40px;left:8px;right:8px;bottom:40px;background:var(--glass-bg);border-radius:24px;box-shadow:0 16px 56px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.04);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--glass-border);" onclick="event.stopPropagation()"><div style="flex:1;overflow-y:auto;padding:24px 20px;-webkit-overflow-scrolling:touch;font-size:15px;line-height:2.0;color:var(--text-primary);">'+body+'</div><div style="padding:8px;text-align:center;"><span style="font-size:12px;color:var(--text-tertiary);">点击空白区域退出</span></div></div>';
+  document.getElementById('ansFullOverlay').innerHTML='<div style="position:absolute;top:40px;left:8px;right:8px;bottom:40px;background:var(--glass-bg);border-radius:24px;box-shadow:0 16px 56px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.04);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--glass-border);" onclick="event.stopPropagation()"><div style="flex:1;overflow-y:auto;padding:24px 20px;-webkit-overflow-scrolling:touch;font-size:15px;line-height:2.0;color:var(--text-primary);white-space:pre-wrap;word-break:break-word;">'+body+'</div><div style="padding:8px;text-align:center;"><span style="font-size:12px;color:var(--text-tertiary);">点击空白区域退出</span></div></div>';
   document.getElementById('ansFullOverlay').style.display='block';
   document.getElementById('ansFullOverlay').onclick=closeAnsFull;
 }
