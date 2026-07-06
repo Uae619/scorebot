@@ -16,9 +16,6 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -1101,68 +1098,6 @@ func handleAnswers(w http.ResponseWriter, r *http.Request) {
 	}})
 }
 
-// ---------- /api/answers-img/{file} (PDF 转 PNG 图片，像答题卡一样显示) ----------
-func handleAnswerImage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	// 路径格式: /api/answers-img/xxx.pdf?page=1
-	path := strings.TrimPrefix(r.URL.Path, "/api/answers-img/")
-	fname := path
-	pageStr := r.URL.Query().Get("page")
-	if pageStr == "" {
-		pageStr = "1"
-	}
-
-	if fname == "" || strings.Contains(fname, "/") || strings.Contains(fname, "\\") {
-		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "无效文件名"})
-		return
-	}
-	if !strings.HasSuffix(strings.ToLower(fname), ".pdf") {
-		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "仅支持 PDF 文件"})
-		return
-	}
-
-	data, err := answersFS.ReadFile("answers/" + fname)
-	if err != nil {
-		writeJSON(w, http.StatusNotFound, apiResponse{Success: false, Error: "文件不存在"})
-		return
-	}
-
-	// 写入临时 PDF 文件
-	tmpDir, err := os.MkdirTemp("", "scorebot-pdf-")
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, apiResponse{Success: false, Error: "创建临时目录失败"})
-		return
-	}
-	defer os.RemoveAll(tmpDir)
-
-	pdfPath := filepath.Join(tmpDir, "input.pdf")
-	if err := os.WriteFile(pdfPath, data, 0644); err != nil {
-		writeJSON(w, http.StatusInternalServerError, apiResponse{Success: false, Error: "写入临时文件失败"})
-		return
-	}
-
-	// pdftoppm 转换 PDF → PNG（150 DPI，单页）
-	outPrefix := filepath.Join(tmpDir, "page")
-	cmd := exec.Command("pdftoppm", "-png", "-r", "150", "-f", pageStr, "-l", pageStr, "-singlefile", pdfPath, outPrefix)
-	cmd.Stderr = nil
-	if err := cmd.Run(); err != nil {
-		logger.Printf("pdftoppm error: %v", err)
-		writeJSON(w, http.StatusInternalServerError, apiResponse{Success: false, Error: "PDF 转换失败"})
-		return
-	}
-
-	imgPath := outPrefix + ".png"
-	imgData, err := os.ReadFile(imgPath)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, apiResponse{Success: false, Error: "读取图片失败"})
-		return
-	}
-
-	w.Header().Set("Content-Type", "image/png")
-	w.Header().Set("Cache-Control", "public, max-age=86400")
-	w.Write(imgData)
-}
-
 // ---------- /api/answers-json/{file} (返回 base64 JSON，绕过 FC Content-Disposition) ----------
 func handleAnswerData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -1284,7 +1219,6 @@ func StartAPIServer(addr string) error {
 	mux.HandleFunc("/api/leaderboard/submit", handleLeaderboardSubmit)
 	mux.HandleFunc("/api/leaderboard", handleLeaderboardView)
 	mux.HandleFunc("/api/answers", handleAnswers)
-	mux.HandleFunc("/api/answers-img/", handleAnswerImage)
 	mux.HandleFunc("/api/answers-json/", handleAnswerData)
 	mux.HandleFunc("/api/answers/", handleAnswerFile)
 	mux.HandleFunc("/", handleIndex)

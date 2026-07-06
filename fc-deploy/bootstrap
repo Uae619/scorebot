@@ -1,5 +1,3 @@
 #!/bin/sh
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq && apt-get install -y -qq poppler-utils 2>/dev/null
 chmod +x /code/scorebot
 exec /code/scorebot
