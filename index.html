@@ -925,7 +925,7 @@ function egg(){
   hp('light');
 }
 
-// ---- 答案查看器（PDF用 base64 data URI 内联显示，绕过 FC Content-Disposition）----
+// ---- 答案查看器（PDF 转 PNG 图片 + 语文内联文本，像答题卡展示）----
 var _ansData=[
   {name:'历史答案',file:'%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
   {name:'政治答案',file:'%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
@@ -953,27 +953,56 @@ function showAnswer(idx){
   var c=document.getElementById('ansContent');
   document.getElementById('ansTitle').textContent=a.name;
   if(a.type==='PDF'){
-    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" style="display:flex;align-items:center;justify-content:center;min-height:320px;"><span style="color:var(--text-tertiary);font-size:13px;">加载中...</span></div>';
-    var jsonUrl=(API||'')+'/api/answers-json/'+a.file;
-    fetch(jsonUrl).then(function(r){return r.json();}).then(function(j){
-      if(!j||!j.data){c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><p style="color:#dc2626;font-size:13px;text-align:center;padding:40px 0;">答案数据为空</p>';return;}
-      // base64 字符串直接从 JSON 取，拼 data URI，无需 atob()
-      var dataUri='data:'+j.type+';base64,'+j.data;
-      _ansCur=dataUri;
-      c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" onclick="viewAnsFull()"><iframe src="'+ea(dataUri)+'#toolbar=0&navpanes=0" style="min-height:60vh;max-height:520px;cursor:pointer;width:100%;border:none;"></iframe></div><p class="ans-full-hint">点击 PDF 放大查看（点击空白处退出）</p>';
-    }).catch(function(){
-      c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><p style="color:#dc2626;font-size:13px;text-align:center;padding:40px 0;">加载失败，请检查网络后重试</p>';
-    });
+    _ansCur=a.file;
+    // 显示加载中 + 逐页加载 PDF 图片（1-indexed，最多 12 页）
+    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div id="ansImgPages" style="display:flex;flex-direction:column;gap:6px;"><div style="text-align:center;padding:40px 0;color:var(--text-tertiary);font-size:13px;">加载中...</div></div><p class="ans-full-hint">点击图片放大查看（点击空白处退出）</p>';
+    loadAnsPage(a.file,1,c);
   }else{
     _ansCur=esc(a.md);
     c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer ans-md-click" onclick="viewAnsFullText()"><div class="ans-md">'+esc(a.md)+'</div></div><p class="ans-full-hint">点击文本放大查看（点击空白处退出）</p>';
   }
 }
 
-function viewAnsFull(){
-  if(!_ansCur) return;
-  document.getElementById('ansFullFrame').src=_ansCur+'#toolbar=0&navpanes=0';
-  document.getElementById('ansFullOverlay').style.display='block';
+function loadAnsPage(file,page,container){
+  var api=API||'';
+  var imgUrl=api+'/api/answers-img/'+file+'?page='+page;
+  var img=new Image();
+  img.onload=function(){
+    var pages=document.getElementById('ansImgPages');
+    if(!pages) return;
+    // 移除加载中提示
+    if(page===1){
+      var ld=pages.querySelector('div:first-child');
+      if(ld&&ld.textContent==='加载中...') ld.remove();
+    }
+    var wrap=document.createElement('div');
+    wrap.style.cssText='cursor:pointer;border-radius:12px;overflow:hidden;background:var(--bg-surface);';
+    wrap.innerHTML='<div style="font-size:11px;color:var(--text-tertiary);text-align:center;padding:4px 0 2px;">第 '+page+' 页</div>';
+    var im=document.createElement('img');
+    im.src=imgUrl;
+    im.style.cssText='width:100%;display:block;';
+    im.onclick=function(){viewAnsPage(imgUrl);};
+    im.onerror=function(){wrap.innerHTML='<p style="color:#dc2626;font-size:12px;text-align:center;padding:10px;">第 '+page+' 页加载失败</p>';};
+    wrap.appendChild(im);
+    pages.appendChild(wrap);
+    // 尝试加载下一页
+    loadAnsPage(file,page+1,container);
+  };
+  img.onerror=function(){
+    // 加载失败 = 没有更多页了，静默结束
+    var pages=document.getElementById('ansImgPages');
+    if(pages&&page===1){
+      var ld=pages.querySelector('div:first-child');
+      if(ld&&ld.textContent==='加载中...') ld.innerHTML='<span style="color:#dc2626;">加载失败，请检查网络后重试</span>';
+    }
+  };
+  // 最多尝试 12 页
+  if(page>12) return;
+  img.src=imgUrl;
+}
+
+function viewAnsPage(src){
+  viewFull(src);
 }
 
 function viewAnsFullText(){
