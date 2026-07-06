@@ -1111,13 +1111,16 @@ func handleAnswerFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ct := "application/octet-stream"
+	disp := "attachment"
 	if strings.HasSuffix(fname, ".pdf") {
 		ct = "application/pdf"
+		disp = "inline"
 	} else if strings.HasSuffix(fname, ".md") {
-		ct = "text/markdown; charset=utf-8"
+		ct = "text/plain; charset=utf-8"
+		disp = "inline"
 	}
 	w.Header().Set("Content-Type", ct)
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+fname+"\"")
+	w.Header().Set("Content-Disposition", disp+"; filename=\""+fname+"\"")
 	w.Write(data)
 }
 
