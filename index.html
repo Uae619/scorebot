@@ -751,6 +751,7 @@
 
 <div id="toast" class="toast-fixed"></div>
 
+<script>
 var API='';
 if(location.hostname!=='localhost'&&!location.hostname.startsWith('192.168.')) API='https://scorebot-qqzkkccjlb.cn-hangzhou.fcapp.run';
 var vib = JSON.parse(localStorage.getItem('sb_vib')||'true');
@@ -993,13 +994,12 @@ function build(d,qqid){
       h+='<div class="dw" style="display:none;"></div>';
     }
   }else h+='<div class="empty"><div class="ic">&#128531;</div><p>暂无考试记录</p></div>';
-  h+='<div class="card" style="padding:14px;margin-top:8px;"><div style="font-size:13px;font-weight:600;margin-bottom:8px;">高二期末考答案</div>'
-    +'<div style="font-size:13px;line-height:2.4;">'
-    +'<a href="https://scorebot-qqzkkccjlb.cn-hangzhou.fcapp.run/api/answers/%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.pdf" style="color:var(--accent-from);text-decoration:none;">历史答案.pdf</a> &nbsp; '
-    +'<a href="https://scorebot-qqzkkccjlb.cn-hangzhou.fcapp.run/api/answers/%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.pdf" style="color:var(--accent-from);text-decoration:none;">政治答案.pdf</a> &nbsp; '
-    +'<a href="https://scorebot-qqzkkccjlb.cn-hangzhou.fcapp.run/api/answers/%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.pdf" style="color:var(--accent-from);text-decoration:none;">物理答案.pdf</a> &nbsp; '
-    +'<a href="https://scorebot-qqzkkccjlb.cn-hangzhou.fcapp.run/api/answers/%E8%AF%AD%E6%96%87%E5%AE%A2%E8%A7%82%E9%A2%98%E7%AD%94%E6%A1%88.md" style="color:var(--accent-from);text-decoration:none;">语文客观题</a>'
-    +'</div></div>';
+  h+='<div class="card" style="padding:14px;margin-top:8px;"><div style="font-size:13px;font-weight:600;margin-bottom:6px;">高二期末考答案</div><div style="font-size:12px;line-height:2;">';
+  h+='<a href="'+API+'/api/answers/%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.pdf" style="color:var(--accent-from);text-decoration:none;">历史答案.pdf</a><br>';
+  h+='<a href="'+API+'/api/answers/%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.pdf" style="color:var(--accent-from);text-decoration:none;">政治答案.pdf</a><br>';
+  h+='<a href="'+API+'/api/answers/%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.pdf" style="color:var(--accent-from);text-decoration:none;">物理答案.pdf</a><br>';
+  h+='<a href="'+API+'/api/answers/%E8%AF%AD%E6%96%87%E5%AE%A2%E8%A7%82%E9%A2%98%E7%AD%94%E6%A1%88.md" style="color:var(--accent-from);text-decoration:none;">语文客观题答案</a>';
+  h+='</div></div>';
   return h;
 }
 
