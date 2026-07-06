@@ -923,11 +923,11 @@ function egg(){
   hp('light');
 }
 
-// ---- 答案查看器（PDF走EdgeOne同源直连，不走FC避免Content-Disposition干扰）----
+// ---- 答案查看器（fetch JSON → data URI，绕过 FC Content-Disposition，像答题卡展示）----
 var _ansData=[
-  {name:'历史答案',file:'/answers/%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
-  {name:'政治答案',file:'/answers/%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
-  {name:'物理答案',file:'/answers/%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
+  {name:'历史答案',file:'%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
+  {name:'政治答案',file:'%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
+  {name:'物理答案',file:'%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
   {name:'语文客观题答案',file:'',type:'文本',md:'1-2 BD\n6-7 BD\n10 BEG\n11-12 AB\n15 C\n18-19 CC\n20-21 AC\n23 A'}
 ];
 var _ansCur='';
@@ -951,8 +951,17 @@ function showAnswer(idx){
   var c=document.getElementById('ansContent');
   document.getElementById('ansTitle').textContent=a.name;
   if(a.type==='PDF'){
-    _ansCur=a.file;
-    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" onclick="viewAnsFull()"><iframe src="'+ea(a.file)+'#toolbar=0&navpanes=0" style="min-height:60vh;max-height:520px;cursor:pointer;width:100%;border:none;"></iframe></div><p class="ans-full-hint">点击 PDF 放大查看（点击空白处退出）</p>';
+    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" style="display:flex;align-items:center;justify-content:center;min-height:320px;"><span style="color:var(--text-tertiary);font-size:13px;">加载中...</span></div>';
+    // 通过 JSON API 获取 base64 → 构造 data URI → FC Content-Disposition 完全绕开
+    var jsonUrl=(API||'')+'/api/answers-json/'+a.file;
+    fetch(jsonUrl).then(function(r){return r.json();}).then(function(j){
+      if(!j||!j.data){c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><p style="color:#dc2626;font-size:13px;text-align:center;padding:40px 0;">答案数据为空</p>';return;}
+      var dataUri='data:'+j.type+';base64,'+j.data;
+      _ansCur=dataUri;
+      c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" onclick="viewAnsFull()"><iframe src="'+ea(dataUri)+'#toolbar=0&navpanes=0" style="min-height:60vh;max-height:520px;cursor:pointer;width:100%;border:none;" onload="this.style.opacity=\'1\';" onerror="this.parentElement.innerHTML=\'<p style=color:#dc2626;font-size:13px;text-align:center;padding:40px 0;>PDF 加载失败</p>\'"></iframe></div><p class="ans-full-hint">点击 PDF 放大查看（点击空白处退出）</p>';
+    }).catch(function(){
+      c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><p style="color:#dc2626;font-size:13px;text-align:center;padding:40px 0;">加载失败，请检查网络后重试</p>';
+    });
   }else{
     _ansCur='';
     c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer ans-md-click" onclick="viewAnsFullText()"><div class="ans-md">'+esc(a.md)+'</div></div><p class="ans-full-hint">点击文本放大查看（点击空白处退出）</p>';

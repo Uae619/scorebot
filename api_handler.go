@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -1097,6 +1098,37 @@ func handleAnswers(w http.ResponseWriter, r *http.Request) {
 	}})
 }
 
+// ---------- /api/answers-json/{file} (返回 base64 JSON，绕过 FC Content-Disposition) ----------
+func handleAnswerData(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	fname := strings.TrimPrefix(r.URL.Path, "/api/answers-json/")
+	if fname == "" || strings.Contains(fname, "/") || strings.Contains(fname, "\\") {
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "无效文件名"})
+		return
+	}
+	data, err := answersFS.ReadFile("answers/" + fname)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, apiResponse{Success: false, Error: "文件不存在"})
+		return
+	}
+	// 根据扩展名返回 content-type
+	ct := "application/octet-stream"
+	lc := strings.ToLower(fname)
+	if strings.HasSuffix(lc, ".pdf") {
+		ct = "application/pdf"
+	} else if strings.HasSuffix(lc, ".md") {
+		ct = "text/markdown; charset=utf-8"
+	}
+	// base64 编码后以 JSON 返回 — fetch() 不受 Content-Disposition 影响，前端构造 data URI
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	json.NewEncoder(w).Encode(map[string]string{
+		"type": ct,
+		"name": fname,
+		"data": base64.StdEncoding.EncodeToString(data),
+	})
+}
+
 // ---------- /api/answers/{file} (无需认证) ----------
 func handleAnswerFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -1173,6 +1205,7 @@ func StartAPIServer(addr string) error {
 	mux.HandleFunc("/api/leaderboard/submit", handleLeaderboardSubmit)
 	mux.HandleFunc("/api/leaderboard", handleLeaderboardView)
 	mux.HandleFunc("/api/answers", handleAnswers)
+	mux.HandleFunc("/api/answers-json/", handleAnswerData)
 	mux.HandleFunc("/api/answers/", handleAnswerFile)
 	mux.HandleFunc("/", handleIndex)
 
