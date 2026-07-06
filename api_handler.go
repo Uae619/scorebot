@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	_ "embed"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -32,6 +32,9 @@ var swJS []byte
 
 //go:embed egg.gif
 var eggGIF []byte
+
+//go:embed answers/*
+var answersFS embed.FS
 
 var icon192PNG = generateIconPNG(192)
 var icon512PNG = generateIconPNG(512)
@@ -1058,6 +1061,76 @@ func handleLeaderboardView(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, apiResponse{Success: true, Data: map[string]any{"entries": result}})
 }
 
+// ---------- /api/answers (list) ----------
+func handleAnswers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	qqid := strings.TrimSpace(r.URL.Query().Get("qqid"))
+	if qqid == "" {
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "缺少 qqid"})
+		return
+	}
+	userdata := opView(qqid)
+	if ok, _ := userdata["Return"].(bool); !ok {
+		writeJSON(w, http.StatusForbidden, apiResponse{Success: false, Error: "请先绑定账号"})
+		return
+	}
+	entries, err := answersFS.ReadDir("answers")
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, apiResponse{Success: false, Error: "读取答案列表失败"})
+		return
+	}
+	type fileInfo struct {
+		Name string `json:"name"`
+		Size int64  `json:"size"`
+	}
+	files := make([]fileInfo, 0, len(entries))
+	for _, e := range entries {
+		if !e.IsDir() {
+			info, _ := e.Info()
+			files = append(files, fileInfo{Name: e.Name(), Size: info.Size()})
+		}
+	}
+	writeJSON(w, http.StatusOK, apiResponse{Success: true, Data: map[string]any{
+		"title": "高二期末考答案",
+		"files": files,
+	}})
+}
+
+// ---------- /api/answers/{file} (download) ----------
+func handleAnswerFile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	qqid := strings.TrimSpace(r.URL.Query().Get("qqid"))
+	if qqid == "" {
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "缺少 qqid"})
+		return
+	}
+	userdata := opView(qqid)
+	if ok, _ := userdata["Return"].(bool); !ok {
+		writeJSON(w, http.StatusForbidden, apiResponse{Success: false, Error: "请先绑定账号"})
+		return
+	}
+	fname := strings.TrimPrefix(r.URL.Path, "/api/answers/")
+	if fname == "" || strings.Contains(fname, "/") || strings.Contains(fname, "\\") {
+		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "无效文件名"})
+		return
+	}
+	data, err := answersFS.ReadFile("answers/" + fname)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, apiResponse{Success: false, Error: "文件不存在"})
+		return
+	}
+	ct := "application/octet-stream"
+	if strings.HasSuffix(fname, ".pdf") {
+		ct = "application/pdf"
+	} else if strings.HasSuffix(fname, ".md") {
+		ct = "text/markdown; charset=utf-8"
+	}
+	w.Header().Set("Content-Type", ct)
+	w.Header().Set("Content-Disposition", "inline; filename=\""+fname+"\"")
+	w.Write(data)
+}
+
 func handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=600")
@@ -1101,6 +1174,8 @@ func StartAPIServer(addr string) error {
 	mux.HandleFunc("/icon-512.png", handleIcon512)
 	mux.HandleFunc("/api/leaderboard/submit", handleLeaderboardSubmit)
 	mux.HandleFunc("/api/leaderboard", handleLeaderboardView)
+	mux.HandleFunc("/api/answers", handleAnswers)
+	mux.HandleFunc("/api/answers/", handleAnswerFile)
 	mux.HandleFunc("/", handleIndex)
 
 	server := &http.Server{

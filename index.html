@@ -985,6 +985,9 @@ function build(d,qqid){
   var fs=[['QQ 号',d.qqid],['类型',d.mode],['姓名',d.name||'—'],['学校',d.school||'—'],['年级',d.grade||'—'],['班级',d.class||'—']];
   for(var i=0;i<fs.length;i++) h+='<div class="info-cell"><div class="lbl">'+fs[i][0]+'</div><div class="val">'+esc(fs[i][1])+'</div></div>';
   h+='</div></div>';
+  // 答案下载
+  h+='<div class="card" style="padding:14px;margin-bottom:8px;" id="answers-card"><p style="font-size:12px;color:var(--text-tertiary);margin-bottom:8px;">高二期末考答案</p><div id="answers-list" style="font-size:12px;color:var(--text-secondary);">加载中...</div></div>';
+  loadAnswers(qqid);
   if(d.exams&&d.exams.length>0){
     for(var i=0;i<d.exams.length;i++){
       var ex=d.exams[i];
@@ -1201,6 +1204,22 @@ _iv.addEventListener('touchend',function(e){
     }
   }
 });
+
+// ---- 答案下载 ----
+async function loadAnswers(qqid){
+  try{
+    var r=await fetch(API+'/api/answers?qqid='+qqid);
+    var d=await r.json();
+    var el=document.getElementById('answers-list');
+    if(!d.success){el.innerHTML='<span style="color:var(--text-tertiary);">绑定账号后可查看</span>';return;}
+    var h='';
+    for(var i=0;i<d.data.files.length;i++){
+      var f=d.data.files[i];
+      h+='<div style="padding:6px 0;border-bottom:1px solid var(--hairline);display:flex;justify-content:space-between;align-items:center;"><span>'+esc(f.name)+'</span><a href="'+API+'/api/answers/'+encodeURIComponent(f.name)+'?qqid='+qqid+'" target="_blank" style="color:var(--accent-from);font-weight:600;text-decoration:none;font-size:13px;">查看</a></div>';
+    }
+    el.innerHTML=h||'暂无答案';
+  }catch(e){}
+}
 
 // ---- 考试历史 ----
 function saveExam(d){
