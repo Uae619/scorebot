@@ -945,15 +945,24 @@ function openAns(){
   hp('light');
 }
 
+var _ansBlob='';
 function showAnswer(idx){
   var a=_ansData[idx];
   var c=document.getElementById('ansContent');
   document.getElementById('ansTitle').textContent=a.name;
   var url=API+'/api/answers/'+a.file;
   if(a.type==='PDF'){
-    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" onclick="viewAnsFull(\''+ea(url)+'\')"><iframe src="'+ea(url)+'#toolbar=0&navpanes=0" style="min-height:60vh;max-height:520px;cursor:pointer;width:100%;border:none;"></iframe></div><p class="ans-full-hint">点击 PDF 放大查看（点击空白处退出）</p>';
+    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" style="display:flex;align-items:center;justify-content:center;min-height:320px;"><span style="color:var(--text-tertiary);font-size:13px;">加载中...</span></div>';
+    // FC 强制 Content-Disposition:attachment，iframe直接src会下载而非显示 → fetch+blob URL绕过
+    fetch(url).then(function(r){return r.blob();}).then(function(blob){
+      if(_ansBlob) URL.revokeObjectURL(_ansBlob);
+      _ansBlob=URL.createObjectURL(blob);
+      c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" onclick="viewAnsFull()"><iframe src="'+ea(_ansBlob)+'#toolbar=0&navpanes=0" style="min-height:60vh;max-height:520px;cursor:pointer;width:100%;border:none;"></iframe></div><p class="ans-full-hint">点击 PDF 放大查看（点击空白处退出）</p>';
+    }).catch(function(){
+      c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" style="display:flex;align-items:center;justify-content:center;min-height:200px;"><span style="color:#dc2626;font-size:13px;">加载失败，请重试</span></div>';
+    });
   }else{
-    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer ans-md-click" onclick="viewAnsFullText(\''+ea(url)+'\')"><div class="ans-md" id="ansMdText">加载中...</div></div><p class="ans-full-hint">点击文本放大查看（点击空白处退出）</p>';
+    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer ans-md-click" onclick="viewAnsFullText()"><div class="ans-md" id="ansMdText">加载中...</div></div><p class="ans-full-hint">点击文本放大查看（点击空白处退出）</p>';
     fetch(url).then(function(r){return r.text();}).then(function(t){
       var el=document.getElementById('ansMdText'); if(el) el.textContent=t;
     }).catch(function(){
@@ -962,12 +971,14 @@ function showAnswer(idx){
   }
 }
 
-function viewAnsFull(url){
-  document.getElementById('ansFullFrame').src=url;
+function viewAnsFull(){
+  if(!_ansBlob) return;
+  document.getElementById('ansFullFrame').src=_ansBlob+'#toolbar=0&navpanes=0';
   document.getElementById('ansFullOverlay').style.display='block';
 }
 
-function viewAnsFullText(url){
+function viewAnsFullText(){
+  var url=API+'/api/answers/'+_ansData[3].file;
   fetch(url).then(function(r){return r.text();}).then(function(t){
     document.getElementById('ansFullOverlay').innerHTML='<div style="position:absolute;top:40px;left:8px;right:8px;bottom:40px;background:var(--glass-bg);border-radius:24px;box-shadow:0 16px 56px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.04);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--glass-border);" onclick="event.stopPropagation()"><div style="flex:1;overflow-y:auto;padding:24px 20px;-webkit-overflow-scrolling:touch;"><pre style="white-space:pre-wrap;word-break:break-word;font-size:16px;line-height:2.0;color:var(--text-primary);font-family:inherit;margin:0;">'+esc(t)+'</pre></div><div style="padding:8px;text-align:center;"><span style="font-size:12px;color:var(--text-tertiary);">点击空白区域退出</span></div></div>';
     document.getElementById('ansFullOverlay').style.display='block';
@@ -983,8 +994,6 @@ function closeAns(e){
 function closeAnsFull(){
   document.getElementById('ansFullOverlay').style.display='none';
   document.getElementById('ansFullFrame').src='';
-  var ov=document.getElementById('ansFullOverlay');
-  ov.innerHTML='<div style="position:absolute;top:40px;left:8px;right:8px;bottom:40px;background:var(--glass-bg);border-radius:24px;box-shadow:0 16px 56px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.04);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--glass-border);" onclick="event.stopPropagation()"><iframe id="ansFullFrame" src="" style="width:100%;height:100%;border:none;border-radius:24px;flex:1;"></iframe><div style="padding:8px;text-align:center;"><span style="font-size:12px;color:var(--text-tertiary);">点击空白区域退出</span></div></div>';
 }
 
 var _is={s:1,x:0,y:0,pd:0,ps:1,lx:0,ly:0,wp:false,lt:0};

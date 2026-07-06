@@ -1097,7 +1097,7 @@ func handleAnswers(w http.ResponseWriter, r *http.Request) {
 	}})
 }
 
-// ---------- /api/answers/{file} (download, no auth) ----------
+// ---------- /api/answers/{file} (无需认证) ----------
 func handleAnswerFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	fname := strings.TrimPrefix(r.URL.Path, "/api/answers/")
@@ -1110,8 +1110,15 @@ func handleAnswerFile(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, apiResponse{Success: false, Error: "文件不存在"})
 		return
 	}
-	w.Header().Set("Content-Type", "application/pdf")
-	w.Header().Set("Content-Disposition", "inline; filename=\""+fname+"\"")
+	// 根据扩展名设置 Content-Type；不设 Content-Disposition（FC 会覆写为 attachment）
+	if strings.HasSuffix(strings.ToLower(fname), ".pdf") {
+		w.Header().Set("Content-Type", "application/pdf")
+	} else if strings.HasSuffix(strings.ToLower(fname), ".md") {
+		w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
+	} else {
+		w.Header().Set("Content-Type", "application/octet-stream")
+	}
+	w.Header().Set("Cache-Control", "public, max-age=3600")
 	w.Write(data)
 }
 
