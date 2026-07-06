@@ -935,7 +935,7 @@ var _ansData=[
   {name:'历史答案',file:'%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
   {name:'政治答案',file:'%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
   {name:'物理答案',file:'%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
-  {name:'语文客观题答案',file:'',type:'文本',md:'1-2 BD\n6-7 BD\n10 BEG\n11-12 AB\n15 C\n18-19 CC\n20-21 AC\n23 A'}
+  {name:'语文答案',file:'%E8%AF%AD%E6%96%87%E7%AD%94%E6%A1%88.pdf',type:'PDF'}
 ];
 var _ansCur='';
 
@@ -962,48 +962,41 @@ function showAnswer(idx){
   var a=_ansData[idx];
   var c=document.getElementById('ansContent');
   document.getElementById('ansTitle').textContent=a.name;
-  if(a.type==='PDF'){
-    _ansCur=a.file;
-    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div id="ansPdfPages" style="display:flex;flex-direction:column;gap:6px;"><div style="text-align:center;padding:60px 0;color:var(--text-tertiary);font-size:13px;">加载中...</div></div><p class="ans-full-hint">点击图片放大查看（点击空白处退出）</p>';
-    // fetch PDF → PDF.js 渲染所有页到 canvas
-    var pdfUrl=(API||'')+'/api/answers/'+a.file;
-    fetch(pdfUrl).then(function(r){return r.arrayBuffer();}).then(function(buf){
-      if(typeof pdfjsLib==='undefined'){
-        var pages=document.getElementById('ansPdfPages'); if(pages) pages.innerHTML='<p style="color:#dc2626;text-align:center;padding:40px 0;">PDF 组件加载失败，请刷新重试</p>'; return;
-      }
-      return pdfjsLib.getDocument({data:buf}).promise;
-    }).then(function(pdf){
-      if(!pdf) return;
-      var pages=document.getElementById('ansPdfPages'); if(!pages) return;
-      pages.innerHTML='';
-      // 逐个渲染页面
-      var scale=Math.min(1.8, window.devicePixelRatio||1);
-      function renderPage(n){
-        if(n>pdf.numPages) return;
-        pdf.getPage(n).then(function(page){
-          var vp=page.getViewport({scale:scale});
-          var canvas=document.createElement('canvas');
-          canvas.width=vp.width; canvas.height=vp.height;
-          canvas.style.cssText='width:100%;height:auto;display:block;cursor:pointer;border-radius:12px;';
-          canvas.onclick=function(){viewFull(canvas.toDataURL('image/png'));};
-          var wrap=document.createElement('div');
-          wrap.style.cssText='margin-bottom:6px;';
-          wrap.innerHTML='<div style="font-size:11px;color:var(--text-tertiary);text-align:center;padding:2px 0 4px;">第 '+n+' 页 / 共 '+pdf.numPages+' 页</div>';
-          wrap.appendChild(canvas);
-          pages.appendChild(wrap);
-          page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise.then(function(){
-            renderPage(n+1);
-          });
+  c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div id="ansPdfPages" style="display:flex;flex-direction:column;gap:6px;"><div style="text-align:center;padding:60px 0;color:var(--text-tertiary);font-size:13px;">加载中...</div></div><p class="ans-full-hint">点击图片放大查看（点击空白处退出）</p>';
+  // fetch PDF → PDF.js 渲染所有页到 canvas
+  var pdfUrl=(API||'')+'/api/answers/'+a.file;
+  fetch(pdfUrl).then(function(r){return r.arrayBuffer();}).then(function(buf){
+    if(typeof pdfjsLib==='undefined'){
+      var pages=document.getElementById('ansPdfPages'); if(pages) pages.innerHTML='<p style="color:#dc2626;text-align:center;padding:40px 0;">PDF 组件加载失败，请刷新重试</p>'; return;
+    }
+    return pdfjsLib.getDocument({data:buf}).promise;
+  }).then(function(pdf){
+    if(!pdf) return;
+    var pages=document.getElementById('ansPdfPages'); if(!pages) return;
+    pages.innerHTML='';
+    var scale=Math.min(1.8, window.devicePixelRatio||1);
+    function renderPage(n){
+      if(n>pdf.numPages) return;
+      pdf.getPage(n).then(function(page){
+        var vp=page.getViewport({scale:scale});
+        var canvas=document.createElement('canvas');
+        canvas.width=vp.width; canvas.height=vp.height;
+        canvas.style.cssText='width:100%;height:auto;display:block;cursor:pointer;border-radius:12px;';
+        canvas.onclick=function(){viewFull(canvas.toDataURL('image/png'));};
+        var wrap=document.createElement('div');
+        wrap.style.cssText='margin-bottom:6px;';
+        wrap.innerHTML='<div style="font-size:11px;color:var(--text-tertiary);text-align:center;padding:2px 0 4px;">第 '+n+' 页 / 共 '+pdf.numPages+' 页</div>';
+        wrap.appendChild(canvas);
+        pages.appendChild(wrap);
+        page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise.then(function(){
+          renderPage(n+1);
         });
-      }
-      renderPage(1);
-    }).catch(function(){
-      var pages=document.getElementById('ansPdfPages'); if(pages) pages.innerHTML='<p style="color:#dc2626;text-align:center;padding:40px 0;">加载失败，请检查网络后重试</p>';
-    });
-  }else{
-    _ansCur=esc(a.md);
-    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer ans-md-click" onclick="viewAnsFullText()"><div class="ans-md">'+esc(a.md)+'</div></div><p class="ans-full-hint">点击文本放大查看（点击空白处退出）</p>';
-  }
+      });
+    }
+    renderPage(1);
+  }).catch(function(){
+    var pages=document.getElementById('ansPdfPages'); if(pages) pages.innerHTML='<p style="color:#dc2626;text-align:center;padding:40px 0;">加载失败，请检查网络后重试</p>';
+  });
 }
 
 function viewAnsFullText(){
