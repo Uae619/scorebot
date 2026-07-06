@@ -1116,6 +1116,13 @@ func handleAnswerFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleIndex(w http.ResponseWriter, r *http.Request) {
+	// FC 域名强制 Content-Disposition: attachment，浏览器会下载而非渲染 HTML。
+	// 302 重定向无响应体，Content-Disposition 无效，浏览器直接跳转到前端。
+	host := strings.ToLower(r.Host)
+	if strings.Contains(host, "fcapp.run") || strings.Contains(host, "aliyuncs.com") {
+		http.Redirect(w, r, "https://chafen.dpdns.org", http.StatusFound)
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=600")
 	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
