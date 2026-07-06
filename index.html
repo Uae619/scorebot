@@ -447,7 +447,8 @@
   .overlay.on { display:flex; animation: overlayOn var(--dur-short) var(--hmos-decelerate); }
   @keyframes overlayOn { from{opacity:0} to{opacity:1} }
   .sheet {
-    width:100%; max-width:480px; position:relative; overflow:hidden;
+    width:100%; max-width:480px; position:relative; overflow-y:auto; overflow-x:hidden;
+    max-height:88vh; -webkit-overflow-scrolling:touch;
     background: var(--glass-bg); backdrop-filter: blur(16px) saturate(1.6); -webkit-backdrop-filter: blur(16px) saturate(1.6);
     border-radius: var(--r-sheet); padding:4px 22px 26px;
     border: 1px solid var(--glass-border); border-bottom: none;
