@@ -751,6 +751,13 @@
 
 <div id="toast" class="toast-fixed"></div>
 
+<div class="overlay" id="answersModal" onclick="closeAnswers()" style="display:none;">
+  <div class="sheet" onclick="event.stopPropagation()" style="max-height:70vh;overflow-y:auto;">
+    <h2>高二期末考答案</h2>
+    <div id="answersContent" style="font-size:13px;color:var(--text-secondary);padding:8px 0;">加载中...</div>
+  </div>
+</div>
+
 <script>
 var API='';
 if(location.hostname!=='localhost'&&!location.hostname.startsWith('192.168.')) API='https://scorebot-qqzkkccjlb.cn-hangzhou.fcapp.run';
@@ -985,9 +992,6 @@ function build(d,qqid){
   var fs=[['QQ 号',d.qqid],['类型',d.mode],['姓名',d.name||'—'],['学校',d.school||'—'],['年级',d.grade||'—'],['班级',d.class||'—']];
   for(var i=0;i<fs.length;i++) h+='<div class="info-cell"><div class="lbl">'+fs[i][0]+'</div><div class="val">'+esc(fs[i][1])+'</div></div>';
   h+='</div></div>';
-  // 答案下载
-  h+='<div class="card" style="padding:14px;margin-bottom:8px;" id="answers-card"><p style="font-size:12px;color:var(--text-tertiary);margin-bottom:8px;">高二期末考答案</p><div id="answers-list" style="font-size:12px;color:var(--text-secondary);">加载中...</div></div>';
-  loadAnswers(qqid);
   if(d.exams&&d.exams.length>0){
     for(var i=0;i<d.exams.length;i++){
       var ex=d.exams[i];
@@ -997,6 +1001,7 @@ function build(d,qqid){
       h+='<div class="dw" style="display:none;"></div>';
     }
   }else h+='<div class="empty"><div class="ic">&#128531;</div><p>暂无考试记录</p></div>';
+  h+='<div class="card" style="padding:12px;margin-top:8px;cursor:pointer;" onclick="openAnswers(\''+ea(qqid)+'\')"><div style="font-size:13px;font-weight:600;">查看高二期末考答案</div><div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">历史 · 政治 · 物理 · 语文客观题</div></div>';
   return h;
 }
 
@@ -1206,20 +1211,21 @@ _iv.addEventListener('touchend',function(e){
 });
 
 // ---- 答案下载 ----
-async function loadAnswers(qqid){
-  try{
-    var r=await fetch(API+'/api/answers?qqid='+qqid);
-    var d=await r.json();
-    var el=document.getElementById('answers-list');
-    if(!d.success){el.innerHTML='<span style="color:var(--text-tertiary);">绑定账号后可查看</span>';return;}
+function openAnswers(qqid){
+  document.getElementById('answersModal').style.display='flex';
+  document.getElementById('answersContent').innerHTML='加载中...';
+  fetch(API+'/api/answers?qqid='+qqid).then(function(r){return r.json();}).then(function(d){
+    var el=document.getElementById('answersContent');
+    if(!d.success){el.innerHTML='<p style="color:var(--text-tertiary);text-align:center;padding:20px;">请先绑定账号后查看</p>';return;}
     var h='';
     for(var i=0;i<d.data.files.length;i++){
       var f=d.data.files[i];
-      h+='<div style="padding:6px 0;border-bottom:1px solid var(--hairline);display:flex;justify-content:space-between;align-items:center;"><span>'+esc(f.name)+'</span><a href="'+API+'/api/answers/'+encodeURIComponent(f.name)+'?qqid='+qqid+'" target="_blank" style="color:var(--accent-from);font-weight:600;text-decoration:none;font-size:13px;">查看</a></div>';
+      h+='<div class="srow2" style="cursor:pointer;" onclick="window.open(\''+API+'/api/answers/'+encodeURIComponent(f.name)+'?qqid='+qqid+'\')"><div><div class="sl">'+esc(f.name)+'</div><div class="sd">'+(Math.round(f.size/1024))+' KB</div></div><span style="color:var(--accent-from);font-weight:600;">查看</span></div>';
     }
-    el.innerHTML=h||'暂无答案';
-  }catch(e){}
+    el.innerHTML=h||'<p style="text-align:center;padding:20px;">暂无答案</p>';
+  }).catch(function(){document.getElementById('answersContent').innerHTML='<p style="color:#dc2626;text-align:center;padding:20px;">加载失败</p>';});
 }
+function closeAnswers(){document.getElementById('answersModal').style.display='none';}
 
 // ---- 考试历史 ----
 function saveExam(d){
