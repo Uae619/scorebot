@@ -629,6 +629,27 @@
   ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius:3px; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.20); }
   select option { background:#fff; color:#1F2937; }
+
+  /* ---- ANSWER VIEWER (彩蛋式弹出) ---- */
+  .ans-subject-list { display:flex; flex-direction:column; gap:8px; margin:16px 0 6px; }
+  .ans-subject-card {
+    display:flex; align-items:center; justify-content:space-between; padding:14px 16px;
+    background: var(--glass-bg-2); border-radius: var(--r-card-sm);
+    border:1px solid var(--hairline); cursor:pointer;
+    transition: all var(--dur-short) var(--hmos-standard);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .ans-subject-card:active { transform:scale(.97); background: var(--glass-bg); border-color:var(--glass-border); }
+  .ans-subject-card .ans-cn { font-size:15px; font-weight:600; color:var(--text-primary); }
+  .ans-subject-card .ans-ct { font-size:11px; color:var(--text-tertiary); padding:2px 8px; background:var(--glass-bg); border-radius:var(--r-pill); }
+  .ans-back-row { display:inline-flex; align-items:center; gap:4px; font-size:13px; color:var(--accent-from); cursor:pointer; margin-bottom:8px; font-weight:500; }
+  .ans-viewer { width:100%; min-height:320px; border-radius:12px; overflow:hidden; background:var(--bg-surface); }
+  .ans-viewer iframe { width:100%; height:62vh; max-height:520px; border:none; display:block; }
+  .ans-viewer .ans-md { padding:16px 18px; font-size:14px; line-height:2.0; white-space:pre-wrap; color:var(--text-primary); word-break:break-word; }
+  .ans-md-click { cursor:pointer; border-radius:12px; transition:opacity var(--dur-short); }
+  .ans-md-click:active { opacity:.65; }
+  .ans-full-hint { font-size:11px; color:var(--text-tertiary); text-align:center; margin-top:6px; }
+  #ansFullOverlay { backdrop-filter: blur(10px) saturate(0.8) !important; -webkit-backdrop-filter: blur(10px) saturate(0.8) !important; }
 </style>
 </head>
 <body>
@@ -705,6 +726,22 @@
       <img id="fullImg" src="" style="max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;">
     </div>
     <div style="padding:10px;text-align:center;">
+      <span style="font-size:12px;color:var(--text-tertiary);">点击空白区域退出</span>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ansOverlay" onclick="closeAns(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2 id="ansTitle">参考答案</h2>
+    <div id="ansContent"></div>
+  </div>
+</div>
+
+<div id="ansFullOverlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.30);" onclick="closeAnsFull()">
+  <div style="position:absolute;top:40px;left:8px;right:8px;bottom:40px;background:var(--glass-bg);border-radius:24px;box-shadow:0 16px 56px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.04);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--glass-border);" onclick="event.stopPropagation()">
+    <iframe id="ansFullFrame" src="" style="width:100%;height:100%;border:none;border-radius:24px;flex:1;"></iframe>
+    <div style="padding:8px;text-align:center;">
       <span style="font-size:12px;color:var(--text-tertiary);">点击空白区域退出</span>
     </div>
   </div>
@@ -885,6 +922,71 @@ function egg(){
   box.style.display=box.style.display==='none'?'block':'none';
   hp('light');
 }
+
+// ---- 答案查看器 ----
+var _ansData=[
+  {name:'历史答案',file:'%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
+  {name:'政治答案',file:'%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
+  {name:'物理答案',file:'%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
+  {name:'语文客观题答案',file:'%E8%AF%AD%E6%96%87%E5%AE%A2%E8%A7%82%E9%A2%98%E7%AD%94%E6%A1%88.md',type:'文本'}
+];
+
+function openAns(){
+  var c=document.getElementById('ansContent');
+  var h='<div class="ans-subject-list">';
+  for(var i=0;i<_ansData.length;i++){
+    var a=_ansData[i];
+    h+='<div class="ans-subject-card" onclick="showAnswer('+i+')"><span class="ans-cn">'+esc(a.name)+'</span><span class="ans-ct">'+a.type+'</span></div>';
+  }
+  h+='</div>';
+  c.innerHTML=h;
+  document.getElementById('ansTitle').textContent='参考答案';
+  document.getElementById('ansOverlay').classList.add('on');
+  hp('light');
+}
+
+function showAnswer(idx){
+  var a=_ansData[idx];
+  var c=document.getElementById('ansContent');
+  document.getElementById('ansTitle').textContent=a.name;
+  var url=API+'/api/answers/'+a.file;
+  if(a.type==='PDF'){
+    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer" onclick="viewAnsFull(\''+ea(url)+'\')"><iframe src="'+ea(url)+'#toolbar=0&navpanes=0" style="min-height:60vh;max-height:520px;cursor:pointer;width:100%;border:none;"></iframe></div><p class="ans-full-hint">点击 PDF 放大查看（点击空白处退出）</p>';
+  }else{
+    c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div class="ans-viewer ans-md-click" onclick="viewAnsFullText(\''+ea(url)+'\')"><div class="ans-md" id="ansMdText">加载中...</div></div><p class="ans-full-hint">点击文本放大查看（点击空白处退出）</p>';
+    fetch(url).then(function(r){return r.text();}).then(function(t){
+      var el=document.getElementById('ansMdText'); if(el) el.textContent=t;
+    }).catch(function(){
+      var el=document.getElementById('ansMdText'); if(el) el.textContent='加载失败，请重试';
+    });
+  }
+}
+
+function viewAnsFull(url){
+  document.getElementById('ansFullFrame').src=url;
+  document.getElementById('ansFullOverlay').style.display='block';
+}
+
+function viewAnsFullText(url){
+  fetch(url).then(function(r){return r.text();}).then(function(t){
+    document.getElementById('ansFullOverlay').innerHTML='<div style="position:absolute;top:40px;left:8px;right:8px;bottom:40px;background:var(--glass-bg);border-radius:24px;box-shadow:0 16px 56px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.04);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--glass-border);" onclick="event.stopPropagation()"><div style="flex:1;overflow-y:auto;padding:24px 20px;-webkit-overflow-scrolling:touch;"><pre style="white-space:pre-wrap;word-break:break-word;font-size:16px;line-height:2.0;color:var(--text-primary);font-family:inherit;margin:0;">'+esc(t)+'</pre></div><div style="padding:8px;text-align:center;"><span style="font-size:12px;color:var(--text-tertiary);">点击空白区域退出</span></div></div>';
+    document.getElementById('ansFullOverlay').style.display='block';
+    document.getElementById('ansFullOverlay').onclick=closeAnsFull;
+  });
+}
+
+function closeAns(e){
+  if(e&&e.target!==document.getElementById('ansOverlay'))return;
+  document.getElementById('ansOverlay').classList.remove('on');
+}
+
+function closeAnsFull(){
+  document.getElementById('ansFullOverlay').style.display='none';
+  document.getElementById('ansFullFrame').src='';
+  var ov=document.getElementById('ansFullOverlay');
+  ov.innerHTML='<div style="position:absolute;top:40px;left:8px;right:8px;bottom:40px;background:var(--glass-bg);border-radius:24px;box-shadow:0 16px 56px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.04);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--glass-border);" onclick="event.stopPropagation()"><iframe id="ansFullFrame" src="" style="width:100%;height:100%;border:none;border-radius:24px;flex:1;"></iframe><div style="padding:8px;text-align:center;"><span style="font-size:12px;color:var(--text-tertiary);">点击空白区域退出</span></div></div>';
+}
+
 var _is={s:1,x:0,y:0,pd:0,ps:1,lx:0,ly:0,wp:false,lt:0};
 function viewFull(src){
   var img=document.getElementById('fullImg');
@@ -994,12 +1096,7 @@ function build(d,qqid){
       h+='<div class="dw" style="display:none;"></div>';
     }
   }else h+='<div class="empty"><div class="ic">&#128531;</div><p>暂无考试记录</p></div>';
-  h+='<div class="card" style="padding:14px;margin-top:8px;"><div style="font-size:13px;font-weight:600;margin-bottom:6px;">高二期末考答案</div>';
-  h+='<a href="'+API+'/api/answers/%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.pdf" style="color:var(--accent-from);text-decoration:none;font-size:12px;">历史答案.pdf</a> · ';
-  h+='<a href="'+API+'/api/answers/%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.pdf" style="color:var(--accent-from);text-decoration:none;font-size:12px;">政治答案.pdf</a> · ';
-  h+='<a href="'+API+'/api/answers/%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.pdf" style="color:var(--accent-from);text-decoration:none;font-size:12px;">物理答案.pdf</a> · ';
-  h+='<a href="'+API+'/api/answers/%E8%AF%AD%E6%96%87%E5%AE%A2%E8%A7%82%E9%A2%98%E7%AD%94%E6%A1%88.md" style="color:var(--accent-from);text-decoration:none;font-size:12px;">语文客观题</a>';
-  h+='</div>';
+  h+='<div class="card" style="padding:14px;margin-top:8px;cursor:pointer;" onclick="openAns()"><div style="font-size:13px;font-weight:600;margin-bottom:4px;">高二期末考答案</div><div style="font-size:12px;color:var(--text-tertiary);">点击查看历史/政治/物理/语文参考答案</div></div>';
   return h;
 }
 
