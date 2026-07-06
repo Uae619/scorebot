@@ -752,15 +752,16 @@
 <div id="toast" class="toast-fixed"></div>
 
 <div class="overlay" id="ansModal" onclick="hideAnsModal()" style="display:none;">
-  <div class="sheet" onclick="event.stopPropagation()">
-    <h2 style="margin-bottom:16px;">高二期末考答案</h2>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <a id="ans1" href="#" style="display:block;padding:12px 14px;background:var(--glass-bg-2);border-radius:10px;border:1px solid var(--hairline);color:var(--text-primary);text-decoration:none;font-weight:600;">历史答案.pdf</a>
-      <a id="ans2" href="#" style="display:block;padding:12px 14px;background:var(--glass-bg-2);border-radius:10px;border:1px solid var(--hairline);color:var(--text-primary);text-decoration:none;font-weight:600;">政治答案.pdf</a>
-      <a id="ans3" href="#" style="display:block;padding:12px 14px;background:var(--glass-bg-2);border-radius:10px;border:1px solid var(--hairline);color:var(--text-primary);text-decoration:none;font-weight:600;">物理答案.pdf</a>
-      <a id="ans4" href="#" style="display:block;padding:12px 14px;background:var(--glass-bg-2);border-radius:10px;border:1px solid var(--hairline);color:var(--text-primary);text-decoration:none;font-weight:600;">语文客观题答案</a>
+  <div class="sheet" onclick="event.stopPropagation()" style="width:95vw;max-width:500px;max-height:90vh;overflow-y:auto;">
+    <h2 style="margin-bottom:12px;">高二期末考答案</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+      <button onclick="viewAns('%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.pdf')" style="flex:1;min-width:80px;padding:8px;border:1px solid var(--hairline-solid);border-radius:8px;background:var(--glass-bg-2);color:var(--text-primary);font-size:12px;cursor:pointer;">历史</button>
+      <button onclick="viewAns('%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.pdf')" style="flex:1;min-width:80px;padding:8px;border:1px solid var(--hairline-solid);border-radius:8px;background:var(--glass-bg-2);color:var(--text-primary);font-size:12px;cursor:pointer;">政治</button>
+      <button onclick="viewAns('%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.pdf')" style="flex:1;min-width:80px;padding:8px;border:1px solid var(--hairline-solid);border-radius:8px;background:var(--glass-bg-2);color:var(--text-primary);font-size:12px;cursor:pointer;">物理</button>
+      <button onclick="viewAns('%E8%AF%AD%E6%96%87%E5%AE%A2%E8%A7%82%E9%A2%98%E7%AD%94%E6%A1%88.md')" style="flex:1;min-width:80px;padding:8px;border:1px solid var(--hairline-solid);border-radius:8px;background:var(--glass-bg-2);color:var(--text-primary);font-size:12px;cursor:pointer;">语文</button>
     </div>
-    <p style="text-align:center;color:var(--text-tertiary);font-size:11px;margin-top:14px;">点击空白处退出</p>
+    <iframe id="ansFrame" src="" style="width:100%;height:60vh;border:none;border-radius:12px;background:#fff;"></iframe>
+    <p style="text-align:center;color:var(--text-tertiary);font-size:11px;margin-top:10px;">点击空白处退出</p>
   </div>
 </div>
 
@@ -1218,13 +1219,15 @@ _iv.addEventListener('touchend',function(e){
 
 // ---- 答案弹窗 ----
 function showAnsModal(){
-  document.getElementById('ans1').href=API+'/api/answers/%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.pdf';
-  document.getElementById('ans2').href=API+'/api/answers/%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.pdf';
-  document.getElementById('ans3').href=API+'/api/answers/%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.pdf';
-  document.getElementById('ans4').href=API+'/api/answers/%E8%AF%AD%E6%96%87%E5%AE%A2%E8%A7%82%E9%A2%98%E7%AD%94%E6%A1%88.md';
   document.getElementById('ansModal').style.display='flex';
 }
-function hideAnsModal(){document.getElementById('ansModal').style.display='none';}
+function viewAns(fname){
+  document.getElementById('ansFrame').src=API+'/api/answers/'+fname;
+}
+function hideAnsModal(){
+  document.getElementById('ansModal').style.display='none';
+  document.getElementById('ansFrame').src='';
+}
 
 // ---- 考试历史 ----
 function saveExam(d){
