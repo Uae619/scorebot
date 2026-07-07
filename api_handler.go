@@ -34,6 +34,9 @@ var swJS []byte
 //go:embed egg.gif
 var eggGIF []byte
 
+//go:embed 查分_独立版.apk
+var appApk []byte
+
 //go:embed answers/*
 var answersFS embed.FS
 
@@ -1168,6 +1171,14 @@ func handleAnswerFile(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+// ---------- /api/download/latest ----------
+func handleAppDownload(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/vnd.android.package-archive")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"查分.apk\"")
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	w.Write(appApk)
+}
+
 func handleIndex(w http.ResponseWriter, r *http.Request) {
 	// FC 域名强制 Content-Disposition: attachment，浏览器会下载而非渲染 HTML。
 	// 302 重定向无响应体，Content-Disposition 无效，浏览器直接跳转到前端。
@@ -1221,6 +1232,7 @@ func StartAPIServer(addr string) error {
 	mux.HandleFunc("/api/answers", handleAnswers)
 	mux.HandleFunc("/api/answers-json/", handleAnswerData)
 	mux.HandleFunc("/api/answers/", handleAnswerFile)
+	mux.HandleFunc("/api/download/latest", handleAppDownload)
 	mux.HandleFunc("/", handleIndex)
 
 	server := &http.Server{
