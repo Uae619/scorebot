@@ -1215,7 +1215,7 @@ func StartAPIServer(addr string) error {
 	mux.HandleFunc("/api/download/latest", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
-			"url": "https://chafen.dpdns.org/查分.apk",
+			"url": "https://chafen.dpdns.org/%E6%9F%A5%E5%88%86%E6%9B%B4%E6%96%B0",
 		})
 	})
 	mux.HandleFunc("/", handleIndex)
