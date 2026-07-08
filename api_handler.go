@@ -1069,16 +1069,6 @@ func handleLeaderboardView(w http.ResponseWriter, r *http.Request) {
 func handleAnswers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	qqid := strings.TrimSpace(r.URL.Query().Get("qqid"))
-	if qqid == "" {
-		writeJSON(w, http.StatusBadRequest, apiResponse{Success: false, Error: "缺少 qqid"})
-		return
-	}
-	userdata := opView(qqid)
-	if ok, _ := userdata["Return"].(bool); !ok {
-		writeJSON(w, http.StatusForbidden, apiResponse{Success: false, Error: "请先绑定账号"})
-		return
-	}
 	entries, err := answersFS.ReadDir("answers")
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, apiResponse{Success: false, Error: "读取答案列表失败"})

@@ -944,18 +944,8 @@ function egg(){
   hp('light');
 }
 
-// ---- 答案查看器（PDF.js 客户端渲染 + 语文内联文本，像答题卡展示）----
-var _ansData=[
-  {name:'数学答案',file:'%E6%95%B0%E5%AD%A6%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
-  {name:'语文答案',file:'%E8%AF%AD%E6%96%87%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
-  {name:'物理答案',file:'%E7%89%A9%E7%90%86%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
-  {name:'化学答案',file:'%E5%8C%96%E5%AD%A6%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
-  {name:'生物答案',file:'%E7%94%9F%E7%89%A9%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
-  {name:'英语答案',file:'%E8%8B%B1%E8%AF%AD%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
-  {name:'政治答案',file:'%E6%94%BF%E6%B2%BB%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
-  {name:'历史答案',file:'%E5%8E%86%E5%8F%B2%E7%AD%94%E6%A1%88.pdf',type:'PDF'},
-  {name:'地理答案',file:'%E5%9C%B0%E7%90%86%E7%AD%94%E6%A1%88.pdf',type:'PDF'}
-];
+// ---- 答案查看器（列表从 FC 动态获取，加答案只需上传 FC zip）----
+var _ansCache=null;
 var _ansCur='';
 
 // 初始化 PDF.js worker
@@ -965,22 +955,38 @@ if(typeof pdfjsLib!=='undefined'){
 
 function openAns(){
   var c=document.getElementById('ansContent');
-  var h='<div class="ans-subject-list">';
-  for(var i=0;i<_ansData.length;i++){
-    var a=_ansData[i];
-    h+='<div class="ans-subject-card" onclick="showAnswer('+i+')"><span class="ans-cn">'+esc(a.name)+'</span><span class="ans-ct">'+a.type+'</span></div>';
-  }
-  h+='</div>';
-  c.innerHTML=h;
+  c.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--text-tertiary);font-size:13px;">加载中...</div>';
   document.getElementById('ansTitle').textContent='参考答案';
   document.getElementById('ansOverlay').classList.add('on');
   hp('light');
+  if(_ansCache){
+    renderAnsList(c);
+  }else{
+    fetch((API||'')+'/api/answers').then(function(r){return r.json();}).then(function(j){
+      if(j&&j.success&&j.data&&j.data.files){
+        _ansCache=j.data.files;
+      }
+      renderAnsList(c);
+    }).catch(function(){renderAnsList(c);});
+  }
+}
+function renderAnsList(c){
+  var files=_ansCache||[];
+  if(!files.length){c.innerHTML='<p style="text-align:center;padding:40px 0;color:var(--text-tertiary);font-size:13px;">暂无可用的答案</p>';return;}
+  var h='<div class="ans-subject-list">';
+  for(var i=0;i<files.length;i++){
+    var f=files[i];
+    var name=f.name.replace('.pdf','');
+    h+='<div class="ans-subject-card" onclick="showAnswer(\''+encodeURIComponent(f.name)+'\')"><span class="ans-cn">'+esc(name)+'</span><span class="ans-ct">PDF</span></div>';
+  }
+  h+='</div>';
+  c.innerHTML=h;
 }
 
-function showAnswer(idx){
-  var a=_ansData[idx];
+function showAnswer(file){
   var c=document.getElementById('ansContent');
-  document.getElementById('ansTitle').textContent=a.name;
+  var name=decodeURIComponent(file).replace('.pdf','');
+  document.getElementById('ansTitle').textContent=name;
   c.innerHTML='<span class="ans-back-row" onclick="openAns()">← 返回列表</span><div id="ansPdfPages" style="display:flex;flex-direction:column;gap:6px;"><div style="text-align:center;padding:60px 0;color:var(--text-tertiary);font-size:13px;">加载中...</div></div><p class="ans-full-hint">点击图片放大查看（点击空白处退出）</p>';
 
   function renderPdf(buf){
@@ -1010,7 +1016,7 @@ function showAnswer(idx){
   }
 
   // fetch PDF → PDF.js 渲染（App 和网页同一逻辑，fetch 直接到 FC 后端）
-  var pdfUrl=(API||'')+'/api/answers/'+a.file;
+  var pdfUrl=(API||'')+'/api/answers/'+file;
   fetch(pdfUrl).then(function(r){return r.arrayBuffer();}).then(renderPdf).catch(function(){
     var p=document.getElementById('ansPdfPages');if(p)p.innerHTML='<p style="color:#dc2626;text-align:center;padding:40px 0;">加载失败，请检查网络后重试</p>';
   });
