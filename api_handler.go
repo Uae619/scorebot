@@ -16,6 +16,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -1160,9 +1161,14 @@ func handleAnswerFile(w http.ResponseWriter, r *http.Request) {
 
 // ---------- /api/download/latest ----------
 func handleAppDownload(w http.ResponseWriter, r *http.Request) {
+	data, err := os.ReadFile("查分.apk")
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, apiResponse{Success: false, Error: "APK 文件不存在"})
+		return
+	}
 	w.Header().Set("Content-Type", "application/vnd.android.package-archive")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
-	http.ServeFile(w, r, "查分.apk")
+	w.Write(data)
 }
 
 func handleIndex(w http.ResponseWriter, r *http.Request) {
