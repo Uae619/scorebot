@@ -1213,8 +1213,10 @@ func StartAPIServer(addr string) error {
 	mux.HandleFunc("/api/answers-json/", handleAnswerData)
 	mux.HandleFunc("/api/answers/", handleAnswerFile)
 	mux.HandleFunc("/api/download/latest", func(w http.ResponseWriter, r *http.Request) {
-		// FC 禁止直接返回 APK，302 到 EdgeOne 同域下载
-		http.Redirect(w, r, "https://chafen.dpdns.org/%E6%9F%A5%E5%88%86.apk", http.StatusFound)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"url": "https://chafen.dpdns.org/查分.apk",
+		})
 	})
 	mux.HandleFunc("/", handleIndex)
 
