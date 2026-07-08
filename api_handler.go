@@ -16,7 +16,6 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -1160,17 +1159,6 @@ func handleAnswerFile(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------- /api/download/latest ----------
-func handleAppDownload(w http.ResponseWriter, r *http.Request) {
-	data, err := os.ReadFile("查分.apk")
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, apiResponse{Success: false, Error: "APK 文件不存在"})
-		return
-	}
-	w.Header().Set("Content-Type", "application/vnd.android.package-archive")
-	w.Header().Set("Cache-Control", "public, max-age=3600")
-	w.Write(data)
-}
-
 func handleIndex(w http.ResponseWriter, r *http.Request) {
 	// FC 域名强制 Content-Disposition: attachment，浏览器会下载而非渲染 HTML。
 	// 302 重定向无响应体，Content-Disposition 无效，浏览器直接跳转到前端。
@@ -1224,7 +1212,6 @@ func StartAPIServer(addr string) error {
 	mux.HandleFunc("/api/answers", handleAnswers)
 	mux.HandleFunc("/api/answers-json/", handleAnswerData)
 	mux.HandleFunc("/api/answers/", handleAnswerFile)
-	mux.HandleFunc("/api/download/latest", handleAppDownload)
 	mux.HandleFunc("/", handleIndex)
 
 	server := &http.Server{
