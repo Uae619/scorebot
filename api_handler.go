@@ -34,9 +34,6 @@ var swJS []byte
 //go:embed egg.gif
 var eggGIF []byte
 
-//go:embed 查分_独立版.apk
-var appApk []byte
-
 //go:embed answers/*
 var answersFS embed.FS
 
@@ -1164,9 +1161,8 @@ func handleAnswerFile(w http.ResponseWriter, r *http.Request) {
 // ---------- /api/download/latest ----------
 func handleAppDownload(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/vnd.android.package-archive")
-	w.Header().Set("Content-Disposition", "attachment; filename=\"查分.apk\"")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
-	w.Write(appApk)
+	http.ServeFile(w, r, "查分.apk")
 }
 
 func handleIndex(w http.ResponseWriter, r *http.Request) {
